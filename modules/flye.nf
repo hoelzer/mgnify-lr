@@ -4,7 +4,7 @@ process flye {
     input:
     tuple val(name), file(ont), file(genome_size)
     output:
-    tuple val(name), file(ont), file("${name}.fasta")
+    tuple val(name), file(ont), file("${name}_raw_assembly.fasta")
     shell:
     """
     size=\$(cat !{genome_size})
