@@ -13,6 +13,9 @@ process sourmash_metagenome_size {
     #sum_ont=\$(cat metagenomic-composition.txt | cut -d ',' -f 1 | paste -sd+ | bc)
     #total_m_ont=\$(bc -l <<< "scale=2 ; \$sum_ont /10^6")
     #echo \$total_m_ont"M" > genome_size.txt
+    
+    
+
     echo "100m" > genome_size.txt
     """
 }
