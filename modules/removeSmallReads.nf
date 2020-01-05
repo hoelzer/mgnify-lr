@@ -1,5 +1,5 @@
 process removeSmallReads {
-    label 'basics'
+    label 'ubuntu'
   input:
     tuple val(name), file(reads) 
   output:
