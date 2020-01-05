@@ -35,8 +35,8 @@ println "Output dir name: $params.output\u001B[0m"
 println " "}
 
 if (params.profile) { exit 1, "--profile is WRONG use -profile" }
-if (((params.nano == '' &&  params.illumina == '') || params.illumina == '' ) && params.bins == '' ) 
-    { exit 1, "input missing, use [--nano] and/or [--illumina]; or provide a bin directory [--bins]"}
+if (params.nano == '' || (params.nano == '' && params.illumina == '')) 
+    { exit 1, "input missing, use [--nano] or [--nano] and [--illumina]"}
 
 /************************** 
 * INPUT CHANNELS 
