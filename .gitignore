@@ -1,0 +1,10 @@
+cfg
+*.log*
+wip/
+nextflow-autodownload-databases/
+work/
+data/
+.nextflow/
+results/
+centrifuge-cloud/
+*.txt
