@@ -187,7 +187,7 @@ workflow {
 
       // assembly workflows
       if (params.nano && !params.illumina ) { 
-        nanopore_assembly_wf(nano_input_ch)
+        nanopore_assembly_wf(nano_input_ch, download_sourmash())
       }
       if (params.nano && params.illumina ) { 
         hybrid_assembly_wf(nano_input_ch, illumina_input_ch, extra_ont_ch, extra_ill_ch, download_sourmash())
