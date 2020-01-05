@@ -170,7 +170,7 @@ workflow nanopore_assembly_wf {
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
   emit:   
-        assembly = assemblerOutput.out
+        assemblerOutput
 }
 
 
