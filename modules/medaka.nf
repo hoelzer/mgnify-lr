@@ -1,5 +1,6 @@
 process medaka {
   label 'medaka'
+  publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_polished.fasta"
       input:
         tuple val(name), file(read), file(consensus) 
       output:

@@ -1,6 +1,6 @@
 process sourmash_metagenome_size {
     label 'sourmash'
-    publishDir "${params.output}/${name}_assembly/", mode: 'copy', pattern: "genome_size.txt"
+    publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "genome_size.txt"
     input:
     tuple val(name), file(ont)
     file(database)
