@@ -72,7 +72,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output)
     include nanoplot from './modules/nanoplot' params(output: params.output)
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
-    include flye from './modules/flye' params(output: params.output, gsize: params.gsize)
+    include flye from './modules/flye' params(output: params.output)
     include minimap2_to_polish from './modules/minimap2'
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
