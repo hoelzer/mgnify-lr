@@ -1,9 +1,9 @@
-# Workflow Metagenomics
+# MGnify-LR Workflow
 
 ![](https://img.shields.io/badge/nextflow-19.10.0-brightgreen)
 ![](https://img.shields.io/badge/uses-docker-blue.svg)
 
-Maintainer: Martin Hoelzer
+Maintainer: Martin H&ouml;lzer
 
 Email: hoelzer.martin@gmail.com
 
@@ -18,6 +18,13 @@ Email: hoelzer.martin@gmail.com
 
 # Execution example
 
+After pulling this git:
 ```
-nextflow run main.nf --nano '*/*.fastq'
+nextflow run main.nf --nano test_data/ERR3662306_1_small.fastq.gz
+```
+
+or let nextflow pull this git:
+
+```
+nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output
 ```
