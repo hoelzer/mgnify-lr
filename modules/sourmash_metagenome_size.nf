@@ -16,6 +16,7 @@ process sourmash_metagenome_size {
     
     
 
-    echo "100m" > genome_size.txt
+    #echo "100m" > genome_size.txt
+    echo "!{params.gsize}" > genome_size.txt
     """
 }

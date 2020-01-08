@@ -71,7 +71,7 @@ else if (params.illumina) { illumina_input_ch = Channel
 
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output)
     include nanoplot from './modules/nanoplot' params(output: params.output)
-    include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output)
+    include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output, gsize: params.gsize)
     include minimap2_to_polish from './modules/minimap2'
     include racon from './modules/racon'
@@ -220,6 +220,7 @@ def helpMSG() {
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
     --output            name of the result folder [default: $params.output]
+    --gsize            	estimated genome size for flye assembly [default: $params.gsize]
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
 
