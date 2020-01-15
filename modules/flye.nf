@@ -1,6 +1,7 @@
 process flye {
     label 'flye'
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_assembly.fasta"
+    publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
     input:
     tuple val(name), file(ont), file(genome_size)
     output:
