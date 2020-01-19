@@ -76,6 +76,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     include minimap2_to_polish from './modules/minimap2'
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
+    include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
 
 /*
     include bwa_to_bam as bwa_bin from './modules/bwa'  
@@ -94,6 +95,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     include spades_ill_only from './modules/spades' params( output : params.output)
     include unicycler from './modules/unicycler' params(output : params.output)
 */
+
 
 /************************** 
 * DATABASES
@@ -171,6 +173,8 @@ workflow nanopore_assembly_wf {
 
   emit:   
         assemblerOutput
+        flye.out[1] // the flye.log
+        sourmash_metagenome_size.out
 }
 
 
@@ -188,10 +192,14 @@ workflow {
       // assembly workflows
       if (params.nano && !params.illumina ) { 
         nanopore_assembly_wf(nano_input_ch, download_sourmash())
+        if (params.study || params.sample || params.run) {
+          ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+        }
       }
       if (params.nano && params.illumina ) { 
         hybrid_assembly_wf(nano_input_ch, illumina_input_ch, extra_ont_ch, extra_ill_ch, download_sourmash())
       }
+
 }
 
 
@@ -207,7 +215,7 @@ def helpMSG() {
     log.info """
     ____________________________________________________________________________________________
     
-    Workflow: Template
+    MGnify-LR: build long-read and hybrid assemblies for input of the MGnify pipeline. 
     
     ${c_yellow}Usage example:${c_reset}
     nextflow run main.nf --nano '*/*.fastq' --illumina '*.R{1,2}.fastq.gz'
@@ -224,6 +232,14 @@ def helpMSG() {
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
 
+    ${c_yellow}ENA parameters:${c_reset}
+    --study             ENA study ID [default: $params.study]
+    --sample            ENA sample ID [default: $params.sample]
+    --run               ENA run ID [default: $params.run]
+    ${c_dim}Use this when you assemble an ENA run to automatically produce the correct
+    manifest.txt and project.xml files for ENA upload. Provide either of the three 
+    and the files will be generated, missing values you not provided.${c_reset}
+    
     ${c_dim}Nextflow options:
     -with-report rep.html    cpu / ram usage (may cause errors)
     -with-dag chart.html     generates a flowchart for the process tree
