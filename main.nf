@@ -77,6 +77,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
+    include ena_project_xml from './modules/ena_project_xml' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
 
 /*
     include bwa_to_bam as bwa_bin from './modules/bwa'  
@@ -194,6 +195,7 @@ workflow {
         nanopore_assembly_wf(nano_input_ch, download_sourmash())
         if (params.study || params.sample || params.run) {
           ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_project_xml(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
         }
       }
       if (params.nano && params.illumina ) { 
