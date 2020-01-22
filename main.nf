@@ -68,12 +68,14 @@ else if (params.illumina) { illumina_input_ch = Channel
 **************************/
 
     include sourmash_download_db from './modules/sourmashgetdatabase' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
+    include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output)
     include nanoplot from './modules/nanoplot' params(output: params.output)
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output)
     include minimap2_to_polish from './modules/minimap2'
+    include minimap2_to_decontaminate from './modules/minimap2'
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
@@ -120,6 +122,23 @@ workflow download_sourmash {
     emit: database_sourmash
 } 
 
+workflow download_host_genome {
+  main:
+    // local storage via storeDir
+    if (!params.cloudProcess) { get_host(); db = get_host.out }
+    // cloud storage via db_preload.exists()
+    if (params.cloudProcess) {
+      if (params.phix) {
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix.fa.gz")
+      } else {
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}.fa.gz")
+      }
+      if (db_preload.exists()) { db = db_preload }
+      else  { get_host(); db = get_host.out } 
+    }
+  emit: db
+}
+
 
 /************************** 
 * SUB WORKFLOWS
@@ -158,8 +177,15 @@ workflow hybrid_assembly_wf {
 workflow nanopore_assembly_wf {
   get:  nano_input_ch
         database_sourmash
+        host_genome
 
   main:
+      // decontaminate reads if a host genome is provided
+      if (host_genome) {
+        minimap2_to_decontaminate(nano_input_ch, host_genome)
+        nano_input_ch = minimap2_to_decontaminate.out
+      }
+
       // trimming and QC of reads
         removeSmallReads(nano_input_ch)
         nanoplot(nano_input_ch)
@@ -187,12 +213,16 @@ workflow nanopore_assembly_wf {
 
 workflow {
 
-      // nanopore read prepare
-      // TODO
-
+      // nanopore read decontamination
+      genome = false
+      if (params.species) { 
+        download_host_genome()
+        genome = download_host_genome.out
+      }
+      
       // assembly workflows
       if (params.nano && !params.illumina ) { 
-        nanopore_assembly_wf(nano_input_ch, download_sourmash())
+        nanopore_assembly_wf(nano_input_ch, download_sourmash(), genome)
         if (params.study || params.sample || params.run) {
           ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
           ena_project_xml(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
@@ -233,6 +263,14 @@ def helpMSG() {
     --gsize            	estimated genome size for flye assembly [default: $params.gsize]
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
+
+    ${c_yellow}Decontamination:${c_reset}
+    --species       reference genome for decontamination is selected based on this parameter [default: $params.species]
+                                        ${c_dim}Currently supported are:
+                                        - hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
+                                        - mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
+                                        - eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]${c_reset}
+
 
     ${c_yellow}ENA parameters:${c_reset}
     --study             ENA study ID [default: $params.study]
