@@ -129,9 +129,9 @@ workflow download_host_genome {
     // cloud storage via db_preload.exists()
     if (params.cloudProcess) {
       if (params.phix) {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix.fa.gz")
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix/${params.species}_phix.fa.gz")
       } else {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}.fa.gz")
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
       }
       if (db_preload.exists()) { db = db_preload }
       else  { get_host(); db = get_host.out } 
