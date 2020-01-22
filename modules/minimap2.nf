@@ -46,7 +46,7 @@ process minimap2_to_decontaminate_fastq {
 
 process minimap2_to_decontaminate_fasta {
   label 'minimap2'
-  publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "${name}.*.fasta.gz"  
+  publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}.*.fasta.gz"  
 
   input: 
     tuple val(name), file(fasta)
@@ -71,8 +71,8 @@ process minimap2_to_decontaminate_fasta {
     samtools fasta -F 4 -0 ${name}.contamination.id.fasta ${name}.sam
 
 
-    sed 's/DECONTAMINATE/ /g' ${name}.clean.id.fasta | gzip > ${name}.clean.fasta.gz
-    sed 's/DECONTAMINATE/ /g' ${name}.contamination.id.fasta | gzip > ${name}.contamination.fasta.gz
+    sed 's/DECONTAMINATE/ /g' ${name}.clean.id.fasta | gzip > ${name}_polished_clean.fasta.gz
+    sed 's/DECONTAMINATE/ /g' ${name}.contamination.id.fasta | gzip > ${name}_polished_contamination.fasta.gz
      
     rm ${name}.sam ${name}.clean.id.fasta ${name}.contamination.id.fasta ${name}.id.fasta
     """
