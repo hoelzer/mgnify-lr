@@ -75,7 +75,8 @@ else if (params.illumina) { illumina_input_ch = Channel
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output)
     include minimap2_to_polish from './modules/minimap2'
-    include minimap2_to_decontaminate from './modules/minimap2' params(output:params.output)
+    include minimap2_to_decontaminate_fastq from './modules/minimap2' params(output:params.output)
+    include minimap2_to_decontaminate_fasta from './modules/minimap2' params(output:params.output)
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
@@ -182,8 +183,8 @@ workflow nanopore_assembly_wf {
   main:
       // decontaminate reads if a host genome is provided
       if (host_genome) {
-        minimap2_to_decontaminate(nano_input_ch, host_genome)
-        nano_input_ch = minimap2_to_decontaminate.out
+        minimap2_to_decontaminate_fastq(nano_input_ch, host_genome)
+        nano_input_ch = minimap2_to_decontaminate_fastq.out
       }
 
       // trimming and QC of reads
@@ -197,6 +198,11 @@ workflow nanopore_assembly_wf {
         if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(sourmash_metagenome_size.out)) ; assemblerUnpolished = flye.out[0]}
         if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
+
+      if (host_genome) {
+        minimap2_to_decontaminate_fasta(assemblerOutput, host_genome)
+        assemblerOutput = minimap2_to_decontaminate_fasta.out
+      }
 
   emit:   
         assemblerOutput
