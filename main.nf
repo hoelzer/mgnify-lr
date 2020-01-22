@@ -184,7 +184,7 @@ workflow nanopore_assembly_wf {
       // decontaminate reads if a host genome is provided
       if (host_genome) {
         minimap2_to_decontaminate_fastq(nano_input_ch, host_genome)
-        nano_input_ch = minimap2_to_decontaminate_fastq.out
+        nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
       }
 
       // trimming and QC of reads
@@ -201,7 +201,7 @@ workflow nanopore_assembly_wf {
 
       if (host_genome) {
         minimap2_to_decontaminate_fasta(assemblerOutput, host_genome)
-        assemblerOutput = minimap2_to_decontaminate_fasta.out
+        assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
       }
 
   emit:   
