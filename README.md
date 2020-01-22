@@ -28,3 +28,14 @@ or let nextflow pull this git:
 ```
 nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output
 ```
+
+to also decontaminate your reads and final assembly just add a ``--species`` like this:
+
+```
+nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output --species eco
+```
+
+Currently supported species are:
+* hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
+* mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
+* eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]
