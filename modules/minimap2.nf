@@ -12,8 +12,7 @@ process minimap2_to_polish {
 
 process minimap2_to_decontaminate {
   label 'minimap2'
-  publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "*.clean.fastq.gz" 
-  publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "*.contamination.fastq.gz" 
+  publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "${name}.*.fastq.gz"  
 
   input: 
     tuple val(name), file(fastq)

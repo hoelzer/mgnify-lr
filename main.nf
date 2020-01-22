@@ -75,7 +75,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output)
     include minimap2_to_polish from './modules/minimap2'
-    include minimap2_to_decontaminate from './modules/minimap2'
+    include minimap2_to_decontaminate from './modules/minimap2' params(output:params.output)
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
