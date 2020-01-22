@@ -1,6 +1,6 @@
 process ena_project_xml {
     label 'basics'
-    publishDir "${params.output}/${name}/", mode: 'copy', pattern: "project.xml"
+    publishDir "${params.output}/${name}/", mode: 'copy', pattern: "*.xml"
     
     input:
     tuple val(name), file(assembly)
@@ -8,9 +8,10 @@ process ena_project_xml {
     tuple val(name), file(genome_size)
     
     output:
-    file("project.xml")
+    file("*.xml")
     
     shell:
+    date = Date().format( 'yyyy-MM-dd' )
     """
     MD5=\$(md5sum ${assembly} | awk '{print \$1}')
     SIZE=\$(cat !{genome_size})
@@ -49,6 +50,20 @@ process ena_project_xml {
         </PROJECT_ATTRIBUTES>
     </PROJECT>
 </PROJECT_SET>
+EOF
+
+    touch submission.xml
+    cat <<EOF >> submission.xml
+<SUBMISSION>
+   <ACTIONS>
+      <ACTION>
+         <ADD/>
+      </ACTION>
+      <ACTION>
+          <HOLD HoldUntilDate="${date}"/>
+       </ACTION>
+   </ACTIONS>
+</SUBMISSION>
 EOF
     """
 }
