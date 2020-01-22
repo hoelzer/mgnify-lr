@@ -30,7 +30,7 @@ process ena_project_xml {
 <PROJECT_SET xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <PROJECT alias="\${STUDY}_${workflow.scriptId}">
         <TITLE>Metagenomics assembly of study: \${STUDY}, sample: \${SAMPLE}, run: \${RUN}.</TITLE>
-        <DESCRIPTION>This assembly was derived from the Oxford Nanopore Technologies MinION data set \${RUN} and was assembled with ${params.assemblerLong} (v\${FLYE_VERSION}) using the --meta and --plasmids options and an estimated genome size of \${SIZE}. Before assembly, reads < 500 nt were filtered and the draft flye assembly was polished by one round of racon (v\$RACON_VERSION) and medaka (v\$MEDAKA_VERSION) using the ${params.model} model. </DESCRIPTION>
+        <DESCRIPTION>This assembly was derived from the Oxford Nanopore Technologies MinION data set \${RUN} and was assembled with ${params.assemblerLong} (v\${FLYE_VERSION}) using the --meta and --plasmids options and an estimated genome size of \${SIZE}. Before assembly, reads smaller 500 nt were filtered and the draft flye assembly was polished by one round of racon (v\$RACON_VERSION) and medaka (v\$MEDAKA_VERSION) using the ${params.model} model. </DESCRIPTION>
         <SUBMISSION_PROJECT>
             <SEQUENCING_PROJECT/>
          </SUBMISSION_PROJECT>

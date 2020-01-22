@@ -46,15 +46,15 @@ process minimap2_to_decontaminate_fastq {
 
 process minimap2_to_decontaminate_fasta {
   label 'minimap2'
-  publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}.*.fasta.gz"  
+  publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fasta.gz"  
 
   input: 
     tuple val(name), file(fasta)
     file(db)
 
   output:
-    tuple val(name), file("*.clean.fasta.gz")
-    tuple val(name), file("*.contamination.fasta.gz")
+    tuple val(name), file("*clean.fasta.gz")
+    tuple val(name), file("*contamination.fasta.gz")
 
   script:
     """
