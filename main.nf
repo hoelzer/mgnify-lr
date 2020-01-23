@@ -69,7 +69,7 @@ else if (params.illumina) { illumina_input_ch = Channel
 * MODULES
 **************************/
 
-    include sourmash_download_db from './modules/sourmashgetdatabase' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
+    //include sourmash_download_db from './modules/sourmashgetdatabase' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
     include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output)
@@ -83,6 +83,10 @@ else if (params.illumina) { illumina_input_ch = Channel
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
     include ena_project_xml from './modules/ena_project_xml' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
+
+    //include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
+    include gess_gsize from './modules/estimate_gsize' params(output: params.output)
+
 
 /*
     include bwa_to_bam as bwa_bin from './modules/bwa'  
@@ -112,6 +116,7 @@ The Database Section is designed to "auto-get" pre prepared databases.
 It is written for local use and cloud use via params.cloudProcess.
 */
 
+/*
 workflow download_sourmash {
     main:
         if (params.sour_db) { database_sourmash = file(params.sour_db) }
@@ -124,6 +129,7 @@ workflow download_sourmash {
 
     emit: database_sourmash
 } 
+*/
 
 workflow download_host_genome {
   main:
@@ -179,7 +185,6 @@ workflow hybrid_assembly_wf {
 
 workflow nanopore_assembly_wf {
   get:  nano_input_ch
-        database_sourmash
         host_genome
 
   main:
@@ -194,10 +199,10 @@ workflow nanopore_assembly_wf {
         nanoplot(nano_input_ch)
 
       // size estimation for flye // not working well - bc not installed n sourmash nanozoo container
-        if (params.assemblerLong == 'flye') { sourmash_metagenome_size(nano_input_ch, database_sourmash) }
+        if (params.assemblerLong == 'flye') { gess_gsize(nano_input_ch) }
 
       // assembly with assembler choice via --assemblerLong; assemblerOutput should be the emiting channel
-        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(sourmash_metagenome_size.out)) ; assemblerUnpolished = flye.out[0]}
+        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(gess_gsize.out)) ; assemblerUnpolished = flye.out[0]}
         if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
@@ -234,7 +239,7 @@ workflow {
 
       // assembly workflows
       if (params.nano && !params.illumina ) { 
-        nanopore_assembly_wf(nano_input_ch, download_sourmash(), genome)
+        nanopore_assembly_wf(nano_input_ch, genome)
         if (params.study || params.sample || params.run) {
           ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
           ena_project_xml(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
@@ -272,10 +277,11 @@ def helpMSG() {
 
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
-    --output            name of the result folder [default: $params.output]
+    --maxmem            max memory for kmer operations [default: $params.maxmem]
     --gsize            	estimated genome size for flye assembly [default: $params.gsize]
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
+    --output            name of the result folder [default: $params.output]
 
     ${c_yellow}Decontamination:${c_reset}
     --species       reference genome for decontamination is selected based on this parameter [default: $params.species]
