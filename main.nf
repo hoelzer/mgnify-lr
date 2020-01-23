@@ -63,6 +63,8 @@ else if (params.illumina) { illumina_input_ch = Channel
   .fromFilePairs( params.illumina , checkIfExists: true )
   .view() }
 
+
+
 /************************** 
 * MODULES
 **************************/
@@ -221,11 +223,15 @@ workflow {
 
       // nanopore read decontamination
       genome = false
+      if (params.host) {
+        genome = file(params.host, checkIfExists: true)
+      }
+
       if (params.species) { 
         download_host_genome()
         genome = download_host_genome.out
       }
-      
+
       // assembly workflows
       if (params.nano && !params.illumina ) { 
         nanopore_assembly_wf(nano_input_ch, download_sourmash(), genome)
@@ -261,6 +267,7 @@ def helpMSG() {
     ${c_yellow}Input:${c_reset}
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
+    ${c_green} --host ${c_reset}            host.fasta.gz               -> one host file
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
     ${c_yellow}Options:${c_reset}
