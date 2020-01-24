@@ -26,7 +26,11 @@ process gess_gsize {
 
     shell:
     """
-    gess.py --threads ${task.cpus} --cutoff 3 ${reads} | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
+    TMP=/tmp
+    if [[ "${workflow.profile}" == "ebi" ]]; then 
+        TMP=/scratch
+    fi
+    gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
     """
 }

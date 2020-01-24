@@ -254,6 +254,8 @@ workflow {
 
 /**************************  
 * --help
+*
+*     --maxmem            max memory for kmer operations [default: $params.maxmem]
 **************************/
 def helpMSG() {
     c_green = "\033[0;32m";
@@ -277,7 +279,6 @@ def helpMSG() {
 
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
-    --maxmem            max memory for kmer operations [default: $params.maxmem]
     --gsize            	estimated genome size for flye assembly [default: $params.gsize]
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
