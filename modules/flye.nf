@@ -11,7 +11,7 @@ process flye {
     """
     size=\$(cat !{genome_size})
     if [[ "\$(echo \$size | awk '{print (\$0-int(\$0)>0)?int(\$0)+1:int(\$0)}')" == "0" ]]; then
-        size=1m
+        size=100m
     fi
 
     flye --nano-corr !{ont} -o flye_output -t !{task.cpus} --plasmids --meta --genome-size \$size
