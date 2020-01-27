@@ -18,7 +18,7 @@ process ena_project_xml {
     COVERAGE=\$(grep 'Mean coverage' !{flye_log} | awk '{print \$3}')
 
     FLYE_VERSION=2.5
-    RACON_VERSION=1.4.7
+    RACON_VERSION=1.4.10
     MEDAKA_VERSION=0.10.0
 
     STUDY=${params.study}
