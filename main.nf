@@ -72,7 +72,7 @@ else if (params.illumina) { illumina_input_ch = Channel
     //include sourmash_download_db from './modules/sourmashgetdatabase' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
     include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
-    include removeSmallReads from './modules/removeSmallReads' params(output: params.output)
+    include removeSmallReads from './modules/removeSmallReads' params(output: params.output, length: params.length)
     include nanoplot from './modules/nanoplot' params(output: params.output)
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output)
@@ -280,6 +280,7 @@ def helpMSG() {
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
     --gsize            	estimated genome size for flye assembly [default: $params.gsize]
+    --length            cutoff for ONT length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]

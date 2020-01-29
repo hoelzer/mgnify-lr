@@ -8,10 +8,10 @@ process removeSmallReads {
     """
     case "!{reads}" in
       *.fastq.gz ) 
-        zcat !{reads} | paste - - - - | awk -F"\\t" 'length(\$2)  >= 500' | sed 's/\\t/\\n/g' | gzip > "!{name}_filtered.fastq.gz"
+        zcat !{reads} | paste - - - - | awk -F"\\t" 'length(\$2)  >= !{params.length}' | sed 's/\\t/\\n/g' | gzip > "!{name}_filtered.fastq.gz"
         ;;
       *.fastq)
-        cat !{reads} | paste - - - - | awk -F"\\t" 'length(\$2)  >= 500' | sed 's/\\t/\\n/g' | gzip > "!{name}_filtered.fastq.gz"
+        cat !{reads} | paste - - - - | awk -F"\\t" 'length(\$2)  >= !{params.length}' | sed 's/\\t/\\n/g' | gzip > "!{name}_filtered.fastq.gz"
         ;;
     esac   
     """
