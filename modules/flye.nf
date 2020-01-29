@@ -10,10 +10,6 @@ process flye {
     shell:
     """
     size=\$(cat !{genome_size})
-    if [[ "\$(echo \$size | awk '{print (\$0-int(\$0)>0)?int(\$0)+1:int(\$0)}')" == "0" ]]; then
-        size=100m
-    fi
-
     flye --nano-corr !{ont} -o flye_output -t !{task.cpus} --plasmids --meta --genome-size \$size
     mv flye_output/assembly.fasta ${name}_raw_assembly.fasta
     mv flye_output/flye.log flye.log

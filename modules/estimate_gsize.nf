@@ -32,5 +32,9 @@ process gess_gsize {
     fi
     gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
+    size=\$(cat !{genome_size})
+    if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 101 ]]; then
+        echo '100m' > genome_size.txt
+    fi
     """
 }
