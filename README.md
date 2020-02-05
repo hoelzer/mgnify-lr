@@ -9,12 +9,21 @@ Email: hoelzer.martin@gmail.com
 
 # Workflow
 
-![chart](figures/chart.png)
+## Nanopore-only
+![chart](figures/chart_ont.png)
+
+## Hybrid
+![chart](figures/chart_hybrid.png)
+
+## Nanopore-only with decontamination
+![chart](figures/chart_ont_clean.png)
 
 # Input examples
 
 * **one** .fastq file per sample: `--nano 'sample1.fastq'`
 * paired end illumina: `--illumina 'S_41_17_Cf*.R{1,2}.fastq.gz'`
+
+Hybrid data needs to have matching simpleNames such as ``sample1.fastq.gz`` (ONT) and ``sample1.R{1,2}.fastq.gz`` (Illumina).
 
 # Execution example
 
@@ -39,3 +48,8 @@ Currently supported species are:
 * hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
 * mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
 * eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]
+
+# ToDo
+
+* decontamination of short reads
+
