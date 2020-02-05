@@ -8,6 +8,6 @@ process spades {
     script:
         """
         spades.py --only-assembler -1 ${illumina[0]} -2 ${illumina[1]} --meta --nanopore ${ont} -o spades_output -t ${task.cpus}
-        mv spades_output/contigs.fasta  ${name}_raw_assembly.fasta
+        mv spades_output/contigs.fasta  ${name}_assembly.fasta
         """
 }
