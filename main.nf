@@ -73,9 +73,12 @@ else if (params.illumina) { illumina_input_ch = Channel
     include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output, length: params.length)
+    include './modules/bowtie2' params(output: params.output, control: params.phix)
+    include fastp from './modules/fastp' params(output: params.output)
     include nanoplot from './modules/nanoplot' params(output: params.output)
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
     include flye from './modules/flye' params(output: params.output)
+    include spades from './modules/spades' params( output : params.output)
     include minimap2_to_polish from './modules/minimap2'
     include minimap2_to_decontaminate_fastq from './modules/minimap2' params(output:params.output)
     include minimap2_to_decontaminate_fasta from './modules/minimap2' params(output:params.output)
@@ -93,7 +96,6 @@ else if (params.illumina) { illumina_input_ch = Channel
     include bwa_to_bam as bwa_to_bam_extra from './modules/bwa'
     include bwa_to_bam from './modules/bwa'
     include cat_fasta from './modules/cat_fasta'
-    include fastp from './modules/fastp' params(output: params.output)
     include megahit from './modules/megahit' params( output : params.output)
     include minimap2_to_bam as minimap2_bin from './modules/minimap2'
     include minimap2_to_bam as minimap2_to_bam_extra from './modules/minimap2'
@@ -101,7 +103,6 @@ else if (params.illumina) { illumina_input_ch = Channel
     include pilon from './modules/pilon' params(output: params.output)
     include sourmash_checkm_parser from './modules/parser/checkm_sourmash_parser'params(output: params.output)
     include sourmash_tax_classification from './modules/sourmash_tax_classification' params(output : params.output)
-    include spades from './modules/spades' params( output : params.output)
     include spades_ill_only from './modules/spades' params( output : params.output)
     include unicycler from './modules/unicycler' params(output : params.output)
 */
@@ -148,6 +149,27 @@ workflow download_host_genome {
   emit: db
 }
 
+workflow bowtie2_index {
+  get:
+    genome
+
+  main:
+    // local storage via storeDir
+    if (!params.cloudProcess) { build_bowtie2_index(genome); db = build_bowtie2_index.out }
+    // cloud storage via db_preload.exists()
+    if (params.cloudProcess) {
+      if (params.phix) {
+          db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix/${params.species}_phix/bt2")
+      } else {
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}/bt2")
+      }
+      if (db_preload.exists()) { db = db_preload }
+      else  { build_bowtie2_index(genome); db = build_bowtie2_index.out } 
+    }
+  emit: db
+}
+
+
 
 /************************** 
 * SUB WORKFLOWS
@@ -158,23 +180,26 @@ workflow download_host_genome {
 workflow hybrid_assembly_wf {
   get:  nano_input_ch
         illumina_input_ch
-        database_sourmash
+        host_genome
 
   main:
       // trimming and QC of reads
         removeSmallReads(nano_input_ch)
         fastp(illumina_input_ch)
+        illumina_input_ch = fastp.out[0]
         nanoplot(nano_input_ch)
 
-      // size estimation for flye // not working well - bc not installed n sourmash nanozoo container
-        if (params.assemblerHybrid == 'flye') { sourmash_metagenome_size(nano_input_ch, database_sourmash) }
+      // decontaminate reads if a host genome is provided
+      if (host_genome) {
+        minimap2_to_decontaminate_fastq(removeSmallReads.out, host_genome)
+        nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
+        bowtie2_to_decontaminate_fastq(fastp.out)
+        illumina_input_ch = bowtie2_to_decontaminate_fastq.out[0]
+      }
 
-      // assembly with assembler choice via --assemblerHybrid; assemblerOutput should be the emiting channel
-        if (params.assemblerHybrid == 'flye') { flye(removeSmallReads.out.join(sourmash_metagenome_size.out)) ; assemblerUnpolished = flye.out[0] ; graphOutput = flye.out[1]}
-        if (params.assemblerHybrid == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
-        if (params.assemblerHybrid == 'flye') { pilon(medaka.out.join(fastp.out[0])) }
-        if (params.assemblerHybrid == 'flye') { assemblerOutput = pilon.out }
-        if (params.assemblerHybrid == 'spades') { spades(removeSmallReads.out.join(fastp.out[0])) ; assemblerOutput = spades.out[0] ; graphOutput = spades.out[1]}
+      spades(removeSmallReads.out.join(illumina_input_ch))
+      assemblerOutput = spades.out[0]
+      graphOutput = spades.out[1]
 
   emit:   
         assembly = assemblerOutput.out
@@ -246,7 +271,7 @@ workflow {
         }
       }
       if (params.nano && params.illumina ) { 
-        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, extra_ont_ch, extra_ill_ch, download_sourmash())
+        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, genome)
       }
 
 }
