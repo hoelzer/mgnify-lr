@@ -73,7 +73,6 @@ else if (params.illumina) { illumina_input_ch = Channel
     include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
 
     include removeSmallReads from './modules/removeSmallReads' params(output: params.output, length: params.length)
-    include './modules/bowtie2' params(output: params.output, control: params.phix)
     include fastp from './modules/fastp' params(output: params.output)
     include nanoplot from './modules/nanoplot' params(output: params.output)
     include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
@@ -149,34 +148,15 @@ workflow download_host_genome {
   emit: db
 }
 
-workflow bowtie2_index {
-  get:
-    genome
-
-  main:
-    // local storage via storeDir
-    if (!params.cloudProcess) { build_bowtie2_index(genome); db = build_bowtie2_index.out }
-    // cloud storage via db_preload.exists()
-    if (params.cloudProcess) {
-      if (params.phix) {
-          db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix/${params.species}_phix/bt2")
-      } else {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}/bt2")
-      }
-      if (db_preload.exists()) { db = db_preload }
-      else  { build_bowtie2_index(genome); db = build_bowtie2_index.out } 
-    }
-  emit: db
-}
-
 
 
 /************************** 
 * SUB WORKFLOWS
 **************************/
 
-/* Hybrid Assembly Workflow */
-
+/**********************************************************************/
+/* Hybrid Assembly Workflow 
+/**********************************************************************/
 workflow hybrid_assembly_wf {
   get:  nano_input_ch
         illumina_input_ch
@@ -189,12 +169,13 @@ workflow hybrid_assembly_wf {
         illumina_input_ch = fastp.out[0]
         nanoplot(nano_input_ch)
 
-      // decontaminate reads if a host genome is provided
+      // decontaminate reads if a host genome is provided 
+      // TODO: decontaminate short reads as well
       if (host_genome) {
         minimap2_to_decontaminate_fastq(removeSmallReads.out, host_genome)
         nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
-        bowtie2_to_decontaminate_fastq(fastp.out)
-        illumina_input_ch = bowtie2_to_decontaminate_fastq.out[0]
+        //bowtie2_to_decontaminate_fastq(fastp.out)
+        //illumina_input_ch = bowtie2_to_decontaminate_fastq.out[0]
       }
 
       spades(removeSmallReads.out.join(illumina_input_ch))
@@ -205,9 +186,9 @@ workflow hybrid_assembly_wf {
         assembly = assemblerOutput.out
 }
 
-
-/* Nanopore-only Assembly Workflow */
-
+/**********************************************************************/
+/* Nanopore-only Assembly Workflow 
+/**********************************************************************/
 workflow nanopore_assembly_wf {
   get:  nano_input_ch
         host_genome
