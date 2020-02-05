@@ -15,6 +15,9 @@ Email: hoelzer.martin@gmail.com
 ## Hybrid
 ![chart](figures/chart_hybrid.png)
 
+## Nanopore-only with decontamination
+![chart](figures/chart_ont.png)
+
 # Input examples
 
 * **one** .fastq file per sample: `--nano 'sample1.fastq'`
