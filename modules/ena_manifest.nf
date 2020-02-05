@@ -39,3 +39,41 @@ DESCRIPTION     Reads < 500 nt removed prior assembly. Draft flye assembly polis
 EOF
     """
 }
+
+
+process ena_manifest_hybrid {
+    label 'basics'
+    publishDir "${params.output}/${name}/", mode: 'copy', pattern: "manifest.txt"
+    
+    input:
+    tuple val(name), file(assembly)
+    
+    output:
+    file("manifest.txt")
+    
+    shell:
+    """
+    MD5=\$(md5sum ${assembly} | awk '{print \$1}')
+    COVERAGE=XXX
+
+    SPADES_VERSION=3.13.1
+
+    STUDY=${params.study}
+    SAMPLE=${params.sample}
+    RUN=${params.run}
+
+    touch manifest.txt
+    cat <<EOF >> manifest.txt
+STUDY   \${STUDY}_${workflow.scriptId}
+SAMPLE  \${SAMPLE}
+RUN_REF \${RUN} 
+ASSEMBLYNAME    \${RUN}_\${MD5}
+ASSEMBLY_TYPE   primary metagenome 
+COVERAGE        \${COVERAGE}
+PROGRAM         ${params.assemblerHybrid} v\${FLYE_VERSION} 
+PLATFORM        Oxford Nanopore Technologies MinION 
+FASTA           ${params.output}/${name}/assembly/${assembly}
+DESCRIPTION     Reads were quality controlled with fastp prior assembly. Assembly done with SPAdes v\${SPADES_VERSION}.
+EOF
+    """
+}

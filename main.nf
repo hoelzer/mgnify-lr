@@ -84,7 +84,9 @@ else if (params.illumina) { illumina_input_ch = Channel
     include racon from './modules/racon'
     include medaka from './modules/medaka' params(output: params.output, model: params.model)
     include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
+    include ena_manifest_hybrid from './modules/ena_manifest' params(output: params.output, assemblerHybrid: params.assemblerHybrid, study: params.study, sample: params.sample, run: params.run)
     include ena_project_xml from './modules/ena_project_xml' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
+    include ena_project_xml_hybrid from './modules/ena_project_xml' params(output: params.output, assemblerHybrid: params.assemblerHybrid, study: params.study, sample: params.sample, run: params.run)
 
     //include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
     include gess_gsize from './modules/estimate_gsize' params(output: params.output)
@@ -253,6 +255,10 @@ workflow {
       }
       if (params.nano && params.illumina ) { 
         hybrid_assembly_wf(nano_input_ch, illumina_input_ch, genome)
+        if (params.study || params.sample || params.run) {
+          ena_manifest_hybrid(hybrid_assembly_wf.out)
+          ena_project_xml_hybrid(hybrid_assembly_wf.out)
+        }
       }
 
 }
