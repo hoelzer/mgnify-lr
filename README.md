@@ -16,7 +16,7 @@ Email: hoelzer.martin@gmail.com
 ![chart](figures/chart_hybrid.png)
 
 ## Nanopore-only with decontamination
-![chart](figures/chart.png)
+![chart](figures/chart_ont_clean.png)
 
 # Input examples
 
