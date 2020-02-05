@@ -183,7 +183,7 @@ workflow hybrid_assembly_wf {
       graphOutput = spades.out[1]
 
   emit:   
-        assembly = assemblerOutput.out
+        assembly = assemblerOutput
 }
 
 /**********************************************************************/
