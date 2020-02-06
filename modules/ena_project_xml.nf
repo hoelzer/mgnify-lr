@@ -80,7 +80,7 @@ process ena_project_xml_hybrid {
     file("*.xml")
     
     shell:
-    date = Date().format( 'yyyy-MM-dd' )
+    //date = Date().format( 'yyyy-MM-dd' )
     """
     MD5=\$(md5sum ${assembly} | awk '{print \$1}')
     COVERAGE=XXXX
@@ -126,7 +126,7 @@ EOF
          <ADD/>
       </ACTION>
       <ACTION>
-          <HOLD HoldUntilDate="${date}"/>
+          <HOLD HoldUntilDate="YYYY-MM-DD"/>
        </ACTION>
    </ACTIONS>
 </SUBMISSION>
