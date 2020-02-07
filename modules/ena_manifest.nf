@@ -77,3 +77,18 @@ DESCRIPTION     Reads were quality controlled with fastp prior assembly. Assembl
 EOF
     """
 }
+
+
+/*
+TUDY: Study accession or unique name (alias)
+SAMPLE: Environmental sample accession or unique name (alias)
+ASSEMBLYNAME: Unique assembly name
+ASSEMBLY_TYPE: ‘primary metagenome’
+COVERAGE: The estimated depth of sequencing coverage
+PROGRAM: The assembly program
+PLATFORM: The sequencing platform, or comma-separated list of platforms
+MINGAPLENGTH: Minimum length of consecutive Ns to be considered a gap (optional)
+MOLECULETYPE: ‘genomic DNA’, ‘genomic RNA’ or ‘viral cRNA’ (optional)
+DESCRIPTION: Free text description of the genome assembly (optional)
+RUN_REF: Comma separated list of run accession(s) (optional)
+*/
