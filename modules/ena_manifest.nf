@@ -67,7 +67,7 @@ process ena_manifest_hybrid {
 STUDY   \${STUDY}_${workflow.scriptId}
 SAMPLE  \${SAMPLE}
 RUN_REF \${RUN} 
-ASSEMBLYNAME    \${RUN}_\${MD5}
+ASSEMBLYNAME    \$( echo \${RUN} | sed 's/,/_/g')_\${MD5}
 ASSEMBLY_TYPE   primary metagenome 
 COVERAGE        \${COVERAGE}
 PROGRAM         ${params.assemblerHybrid} v\${SPADES_VERSION} 
