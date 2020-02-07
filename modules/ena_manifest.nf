@@ -71,7 +71,7 @@ ASSEMBLYNAME    \$( echo \${RUN} | sed 's/,/_/g')_\${MD5}
 ASSEMBLY_TYPE   primary metagenome 
 COVERAGE        \${COVERAGE}
 PROGRAM         ${params.assemblerHybrid} v\${SPADES_VERSION} 
-PLATFORM        Oxford Nanopore Technologies MinION 
+PLATFORM        Oxford Nanopore Technologies MinION, Illumina MiSeq
 FASTA           ${params.output}/${name}/assembly/${assembly}
 DESCRIPTION     Reads were quality controlled with fastp prior assembly. Assembly done with SPAdes v\${SPADES_VERSION}.
 EOF
