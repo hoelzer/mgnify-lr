@@ -35,8 +35,11 @@ println "Output dir name: $params.output\u001B[0m"
 println " "}
 
 if (params.profile) { exit 1, "--profile is WRONG use -profile" }
-if (params.nano == '' || (params.nano == '' && params.illumina == '')) 
-    { exit 1, "input missing, use [--nano] or [--nano] and [--illumina]"}
+if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
+  if (params.sra == '') {
+      exit 1, "input missing, use [--nano] or [--sra] or [--nano] and [--illumina]"
+  }
+}
 
 /************************** 
 * INPUT CHANNELS 
@@ -63,7 +66,12 @@ else if (params.illumina) { illumina_input_ch = Channel
   .fromFilePairs( params.illumina , checkIfExists: true )
   .view() }
 
-
+// SRA reads input 
+if (params.sra) {
+nano_input_ch = Channel
+  .fromSRA(params.sra, apiKey: params.key)
+  .view()
+}
 
 /************************** 
 * MODULES
@@ -246,7 +254,7 @@ workflow {
       }
 
       // assembly workflows
-      if (params.nano && !params.illumina ) { 
+      if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, genome)
         if (params.study || params.sample || params.run) {
           ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
@@ -286,6 +294,7 @@ def helpMSG() {
     ${c_yellow}Input:${c_reset}
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
+    ${c_green} --sra ${c_reset}             ERR3407986                  -> Run acc, currently only for ONT data supported
     ${c_green} --host ${c_reset}            host.fasta.gz               -> one host file
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
