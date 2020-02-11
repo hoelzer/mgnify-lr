@@ -1,6 +1,6 @@
-name: label
+name: racon
 channels:
   - bioconda
   - conda-forge
 dependencies:
-  - bioawk=1.0
+  - racon=1.4.10
