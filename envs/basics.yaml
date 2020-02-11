@@ -1,0 +1,7 @@
+name: basics
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=3.7
+  - sed
