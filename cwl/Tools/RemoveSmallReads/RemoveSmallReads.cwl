@@ -12,21 +12,24 @@ requirements:
   InlineJavascriptRequirement: {}
 
 baseCommand: ["RemoveSmallReads.sh"]
-#arguments: ["-l", "0.5"]
+arguments: ["-l", "500"]
 
 inputs:
   fastq_file:
     type: File
     inputBinding:
-      position: 1
+      separate: true
+      prefix: "-r"
   length:
     type: string?
     inputBinding:
-      position: 2
+      separate: true
+      prefix: "-l"
   outdir:
     type: Directory?
     inputBinding:
-      position: 3
+      separate: true
+      prefix: "-o"
 
 outputs:
   filtered_fastq_ont:
@@ -36,11 +39,11 @@ outputs:
 
 
 doc: |
-  usage: RemoveSmallReads.sh <FASTQ> <LENGTH> <OUTDIR> 
+  usage: RemoveSmallReads.sh -r <FASTQ> -l <LENGTH> -o <OUTDIR> 
 
   Extract sequences at least X nt long.
 
-  positional arguments:
-    FASTQ              Path to fastq file to filter
-    LENGTH             Filtering length in nt (default: 500 nt)
-    OUTDIR             Relative or absolute path to directory where you want to store output (default: cwd)
+  arguments:
+    -r             Path to fastq file to filter
+    -l             Filtering length in nt (default: 500 nt)
+    -o             Relative or absolute path to directory where you want to store output (default: cwd)

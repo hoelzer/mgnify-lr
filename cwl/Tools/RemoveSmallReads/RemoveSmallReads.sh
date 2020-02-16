@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
-READS=$1
-LENGTH=500
 OUT='.'
+while getopts r:l:o option 
+do
+case "${option}" 
+in
+r) READS=${OPTARG};;
+l) LENGTH=${OPTARG};;
+o) OUT=${OPTARG};;
+esac
+done
 
 case ${READS} in
     *.fastq.gz ) 
