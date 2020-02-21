@@ -34,6 +34,11 @@ println "\033[2mCPUs to use: $params.cores"
 println "Output dir name: $params.output\u001B[0m"
 println " "}
 
+if( !nextflow.version.matches('20.01+') ) {
+    println "This workflow requires Nextflow version 20.01 or greater -- You are running version $nextflow.version"
+    exit 1
+}
+
 if (params.profile) { exit 1, "--profile is WRONG use -profile" }
 if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
   if (params.sra == '') {
