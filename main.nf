@@ -220,14 +220,14 @@ workflow nanopore_assembly_wf {
 /**********************************************************************/
 /* Analysis Workflow 
 /**********************************************************************/
-workflow analysis_wf {
+/*workflow analysis_wf {
   take: assembly
         db_diamond
 
   main:
         ideel(diamond(prodigal(fasta),database_diamond))
 
-}
+}*/
 
 /************************** 
 * WORKFLOW ENTRY POINT
