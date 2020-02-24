@@ -10,13 +10,6 @@ Author: hoelzer.martin@gmail.com
 * META & HELP MESSAGES 
 **************************/
 
-/* 
-Comment section: First part is a terminal print for additional user information,
-followed by some help statements (e.g. missing input) Second part is file
-channel input. This allows via --list to alter the input of --nano & --illumina
-to add csv instead. name,path   or name,pathR1,pathR2 in case of illumina 
-*/
-
 // terminal prints
 if (params.help) { exit 0, helpMSG() }
 
@@ -82,44 +75,32 @@ nano_input_ch = Channel
 * MODULES
 **************************/
 
-    //include sourmash_download_db from './modules/sourmashgetdatabase' params(cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
-    include get_host from './modules/get_host' params(species: params.species, cloudProcess: params.cloudProcess, cloudDatabase: params.cloudDatabase)
+// databases
+include get_host from './modules/get_host'
 
-    include removeSmallReads from './modules/removeSmallReads' params(output: params.output, length: params.length)
-    include fastp from './modules/fastp' params(output: params.output)
-    include nanoplot from './modules/nanoplot' params(output: params.output)
-    include sourmash_metagenome_size from './modules/sourmash_metagenome_size' params(output: params.output, gsize: params.gsize)
-    include flye from './modules/flye' params(output: params.output)
-    include spades from './modules/spades' params( output : params.output)
-    include minimap2_to_polish from './modules/minimap2'
-    include minimap2_to_decontaminate_fastq from './modules/minimap2' params(output:params.output)
-    include minimap2_to_decontaminate_fasta from './modules/minimap2' params(output:params.output)
-    include racon from './modules/racon'
-    include medaka from './modules/medaka' params(output: params.output, model: params.model)
-    include ena_manifest from './modules/ena_manifest' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
-    include ena_manifest_hybrid from './modules/ena_manifest' params(output: params.output, assemblerHybrid: params.assemblerHybrid, study: params.study, sample: params.sample, run: params.run)
-    include ena_project_xml from './modules/ena_project_xml' params(output: params.output, model: params.model, assemblerLong: params.assemblerLong, study: params.study, sample: params.sample, run: params.run)
-    include ena_project_xml_hybrid from './modules/ena_project_xml' params(output: params.output, assemblerHybrid: params.assemblerHybrid, study: params.study, sample: params.sample, run: params.run)
+// read preprocessing and qc
+include removeSmallReads from './modules/removeSmallReads'
+include fastp from './modules/fastp' 
+include nanoplot from './modules/nanoplot'
+   
+// estimate genome size
+//include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
+include estimate_gsize from './modules/estimate_gsize'
 
-    //include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
-    include gess_gsize from './modules/estimate_gsize' params(output: params.output)
+// assembly & polishing
+include flye from './modules/flye'
+include spades from './modules/spades'
+include minimap2_to_polish from './modules/minimap2'
+include minimap2_to_decontaminate_fastq from './modules/minimap2' 
+include minimap2_to_decontaminate_fasta from './modules/minimap2' 
+include racon from './modules/racon'
+include medaka from './modules/medaka' 
 
-
-/*
-    include bwa_to_bam as bwa_bin from './modules/bwa'  
-    include bwa_to_bam as bwa_to_bam_extra from './modules/bwa'
-    include bwa_to_bam from './modules/bwa'
-    include cat_fasta from './modules/cat_fasta'
-    include megahit from './modules/megahit' params( output : params.output)
-    include minimap2_to_bam as minimap2_bin from './modules/minimap2'
-    include minimap2_to_bam as minimap2_to_bam_extra from './modules/minimap2'
-    include minimap2_to_bam from './modules/minimap2'
-    include pilon from './modules/pilon' params(output: params.output)
-    include sourmash_checkm_parser from './modules/parser/checkm_sourmash_parser'params(output: params.output)
-    include sourmash_tax_classification from './modules/sourmash_tax_classification' params(output : params.output)
-    include spades_ill_only from './modules/spades' params( output : params.output)
-    include unicycler from './modules/unicycler' params(output : params.output)
-*/
+// ENA submission
+include ena_manifest from './modules/ena_manifest' 
+include ena_manifest_hybrid from './modules/ena_manifest'
+include ena_project_xml from './modules/ena_project_xml'
+include ena_project_xml_hybrid from './modules/ena_project_xml' 
 
 
 /************************** 
@@ -129,21 +110,6 @@ nano_input_ch = Channel
 /* Comment section:
 The Database Section is designed to "auto-get" pre prepared databases.
 It is written for local use and cloud use via params.cloudProcess.
-*/
-
-/*
-workflow download_sourmash {
-    main:
-        if (params.sour_db) { database_sourmash = file(params.sour_db) }
-        else if (!params.cloudProcess) { sourmash_download_db() ; database_sourmash = sourmash_download_db.out }
-        else if (params.cloudProcess) { 
-            sour_db_preload = file("${params.cloudDatabase}/sourmash/gtdb.lca.json")
-            if (sour_db_preload.exists()) { database_sourmash = sour_db_preload }    
-            else  { sourmash_download_db() ; database_sourmash = sourmash_download_db.out }
-        }
-
-    emit: database_sourmash
-} 
 */
 
 workflow download_host_genome {
@@ -163,6 +129,17 @@ workflow download_host_genome {
   emit: db
 }
 
+workflow download_diamond {
+    main:
+        if (params.dia_db) { database_diamond = file(params.dia_db) }
+        else if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
+        else if (params.cloudProcess) { 
+            dia_db_preload = file("${params.cloudDatabase}/diamond/database_uniprot.dmnd")
+            if (dia_db_preload.exists()) { database_diamond = dia_db_preload }    
+            else  { diamond_download_db() ; database_diamond = diamond_download_db.out }
+        }
+    emit: database_diamond
+}  
 
 
 /************************** 
@@ -173,9 +150,9 @@ workflow download_host_genome {
 /* Hybrid Assembly Workflow 
 /**********************************************************************/
 workflow hybrid_assembly_wf {
-  get:  nano_input_ch
-        illumina_input_ch
-        host_genome
+  take:  nano_input_ch
+         illumina_input_ch
+         host_genome
 
   main:
       // trimming and QC of reads
@@ -201,12 +178,13 @@ workflow hybrid_assembly_wf {
         assembly = assemblerOutput
 }
 
+
 /**********************************************************************/
 /* Nanopore-only Assembly Workflow 
 /**********************************************************************/
 workflow nanopore_assembly_wf {
-  get:  nano_input_ch
-        host_genome
+  take:  nano_input_ch
+         host_genome
 
   main:
       // decontaminate reads if a host genome is provided
@@ -220,10 +198,10 @@ workflow nanopore_assembly_wf {
         nanoplot(nano_input_ch)
 
       // size estimation for flye // not working well - bc not installed n sourmash nanozoo container
-        if (params.assemblerLong == 'flye') { gess_gsize(nano_input_ch) }
+        if (params.assemblerLong == 'flye') { estimate_gsize(nano_input_ch) }
 
       // assembly with assembler choice via --assemblerLong; assemblerOutput should be the emiting channel
-        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(gess_gsize.out)) ; assemblerUnpolished = flye.out[0]}
+        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
         if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
@@ -235,9 +213,21 @@ workflow nanopore_assembly_wf {
   emit:   
         assemblerOutput
         flye.out[1] // the flye.log
-        sourmash_metagenome_size.out
+        estimate_gsize.out
 }
 
+
+/**********************************************************************/
+/* Analysis Workflow 
+/**********************************************************************/
+workflow analysis_wf {
+  take: assembly
+        db_diamond
+
+  main:
+        ideel(diamond(prodigal(fasta),database_diamond))
+
+}
 
 /************************** 
 * WORKFLOW ENTRY POINT
@@ -247,7 +237,7 @@ workflow nanopore_assembly_wf {
 
 workflow {
 
-      // nanopore read decontamination
+      // get host for read decontamination
       genome = false
       if (params.host) {
         genome = file(params.host, checkIfExists: true)
@@ -300,14 +290,14 @@ def helpMSG() {
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
     ${c_green} --sra ${c_reset}             ERR3407986                  -> Run acc, currently only for ONT data supported
-    ${c_green} --host ${c_reset}            host.fasta.gz               -> one host file
+    ${c_green} --host ${c_reset}            host.fasta.gz               -> one host file for decontamination
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
-    --gsize            	estimated genome size for flye assembly [default: $params.gsize]
-    --length            cutoff for ONT length filtering [default: $params.length]
-    --assemblerHybrid   hybrid assembly tool used [spades | flye, default: $params.assemblerHybrid]
+    --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
+    --length            cutoff for ONT read length filtering [default: $params.length]
+    --assemblerHybrid   hybrid assembly tool used [spades, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]
 
@@ -343,7 +333,7 @@ def helpMSG() {
                              conda (mixes conda and docker)
                              lsf (HPC w/ LSF, singularity/docker)
                              ebi (EBI cluster specific, singularity and docker)
-                             gcloudMartin (googlegenomics and docker)
+                             gcloud (googlegenomics and docker)
                              ${c_reset}
 
     """.stripIndent()

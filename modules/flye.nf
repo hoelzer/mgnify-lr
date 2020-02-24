@@ -2,11 +2,14 @@ process flye {
     label 'flye'
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_assembly.fasta"
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
+    
     input:
     tuple val(name), file(ont), file(genome_size)
+    
     output:
     tuple val(name), file(ont), file("${name}_raw_assembly.fasta")
     tuple val(name), file("flye.log")
+    
     shell:
     """
     size=\$(cat !{genome_size})

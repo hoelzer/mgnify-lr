@@ -13,7 +13,7 @@ process trim_low_abund {
     """
 }
 
-process gess_gsize {
+process estimate_gsize {
     label 'kmc'
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "genome_size.txt"
 
@@ -26,15 +26,19 @@ process gess_gsize {
 
     shell:
     """
-    TMP=/tmp
-    if [[ "${workflow.profile}" == "ebi" ]]; then 
-        TMP=/scratch
-    fi
-    gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
+    if [[ "${params.gsize}" != "" ]]; then
+        echo "${params.gsize}m" > genome_size.txt
+    else
+        TMP=/tmp
+        if [[ "${workflow.profile}" == "ebi" ]]; then 
+            TMP=/scratch
+        fi
+        gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
-    size=\$(cat genome_size.txt)
-    if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 101 ]]; then
-        echo '100m' > genome_size.txt
+        size=\$(cat genome_size.txt)
+        if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 10 ]]; then
+            echo '10m' > genome_size.txt
+        fi
     fi
     """
 }
