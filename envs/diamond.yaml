@@ -1,0 +1,6 @@
+name: diamond
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - diamond=0.9.25

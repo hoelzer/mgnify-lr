@@ -1,0 +1,6 @@
+name: ggplot2
+channels:
+  - r
+  - conda-forge
+dependencies:
+  - r-ggplot2=3.0.0

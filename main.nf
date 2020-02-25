@@ -77,6 +77,7 @@ nano_input_ch = Channel
 
 // databases
 include get_host from './modules/get_host'
+include diamond_download_db from './modules/diamondgetdatabase'
 
 // read preprocessing and qc
 include removeSmallReads from './modules/removeSmallReads'
@@ -95,6 +96,11 @@ include minimap2_to_decontaminate_fastq from './modules/minimap2'
 include minimap2_to_decontaminate_fasta from './modules/minimap2' 
 include racon from './modules/racon'
 include medaka from './modules/medaka' 
+
+// analysis
+include prodigal from './modules/prodigal'
+include diamond from './modules/diamond'
+include ideel from './modules/ideel'
 
 // ENA submission
 include ena_manifest from './modules/ena_manifest' 
@@ -175,7 +181,7 @@ workflow hybrid_assembly_wf {
       graphOutput = spades.out[1]
 
   emit:   
-        assembly = assemblerOutput
+        assemblerOutput
 }
 
 
@@ -220,14 +226,18 @@ workflow nanopore_assembly_wf {
 /**********************************************************************/
 /* Analysis Workflow 
 /**********************************************************************/
-/*workflow analysis_wf {
+workflow analysis_wf {
   take: assembly
         db_diamond
 
   main:
-        ideel(diamond(prodigal(fasta),database_diamond))
-
-}*/
+        ideel(
+          diamond(
+            prodigal(assembly),
+            db_diamond
+          )
+        )
+}
 
 /************************** 
 * WORKFLOW ENTRY POINT
@@ -251,18 +261,23 @@ workflow {
       // assembly workflows
       if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, genome)
+        assembly = nanopore_assembly_wf.out[0]
         if (params.study || params.sample || params.run) {
-          ena_manifest(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
-          ena_project_xml(nanopore_assembly_wf.out[0], nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_manifest(assembly, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_project_xml(assembly, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
         }
       }
       if (params.nano && params.illumina ) { 
         hybrid_assembly_wf(nano_input_ch, illumina_input_ch, genome)
+        assembly = hybrid_assembly_wf.out
         if (params.study || params.sample || params.run) {
-          ena_manifest_hybrid(hybrid_assembly_wf.out)
-          ena_project_xml_hybrid(hybrid_assembly_wf.out)
+          ena_manifest_hybrid(assembly)
+          ena_project_xml_hybrid(assembly)
         }
       }
+
+      // analysis workflow
+      analysis_wf(assembly, download_diamond())
 
 }
 
