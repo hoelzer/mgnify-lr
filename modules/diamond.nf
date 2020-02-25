@@ -2,7 +2,7 @@
 process diamond {
       label 'diamond'
     input:
-      tuple val(name), file(proteins)
+      tuple val(name), env(ASSEMBLY_STATUS), file(proteins)
       file(database)
     output:
       tuple val(name), file("${name}.data")

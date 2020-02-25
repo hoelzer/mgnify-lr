@@ -1,13 +1,13 @@
 process ideel {
-    publishDir "${params.output}/${name}/ideel", mode: 'copy', pattern: "${name}_ideel.pdf"
+    publishDir "${params.output}/${name}/ideel", mode: 'copy', pattern: "${name}_${ASSEMBLY_STATUS}_ideel.pdf"
     label 'ggplot2'
 
   input:
-    tuple val(name), file(results) 
+    tuple val(name), env(ASSEMBLY_STATUS), file(results) 
 
   output:
-	  tuple val(name), file("${name}_ideel.pdf") 
-      
+	  tuple val(name), file("${name}_${ASSEMBLY_STATUS}_ideel.pdf") 
+
   script:
     """
     #!/usr/bin/Rscript
@@ -49,6 +49,6 @@ process ideel {
           ylab('frequency') +
           scale_x_continuous(limits=c(0, 1.3)) +
           theme_minimal()
-      ggsave("${name}_ideel.pdf", p, height=7, width=7, units='cm')
+      ggsave("${name}_${ASSEMBLY_STATUS}_ideel.pdf", p, height=7, width=7, units='cm')
     """
 }
