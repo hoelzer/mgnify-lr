@@ -1,5 +1,9 @@
 process racon {
       label 'racon'
+
+    errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
+    maxRetries 2
+
    input:
       tuple val(name), file(read), file(assembly), file(mapping) 
    output:

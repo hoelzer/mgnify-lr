@@ -123,7 +123,7 @@ workflow download_host_genome {
     // local storage via storeDir
     if (!params.cloudProcess) { get_host(); db = get_host.out }
     // cloud storage via db_preload.exists()
-    if (params.cloudProcess) {
+    else {
       if (params.phix) {
         db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix/${params.species}_phix.fa.gz")
       } else {
@@ -137,9 +137,8 @@ workflow download_host_genome {
 
 workflow download_diamond {
     main:
-        if (params.dia_db) { database_diamond = file(params.dia_db) }
-        else if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
-        else if (params.cloudProcess) { 
+        if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
+        else { 
             dia_db_preload = file("${params.cloudDatabase}/diamond/database_uniprot.dmnd")
             if (dia_db_preload.exists()) { database_diamond = dia_db_preload }    
             else  { diamond_download_db() ; database_diamond = diamond_download_db.out }
@@ -277,7 +276,13 @@ workflow {
       }
 
       // analysis workflow
-      analysis_wf(assembly, download_diamond())
+      if (params.dia_db) { 
+        database_diamond = file(params.dia_db) 
+      } else {
+        database_diamond = download_diamond.out
+      }
+
+      analysis_wf(assembly, database_diamond)
 
 }
 
@@ -315,6 +320,9 @@ def helpMSG() {
     --assemblerHybrid   hybrid assembly tool used [spades, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]
+
+    ${c_yellow}Custom Databases:${c_reset}
+     --dia_db      input for diamond database e.g.: 'databases/database_uniprot.dmnd
 
     ${c_yellow}Decontamination:${c_reset}
     --species       reference genome for decontamination is selected based on this parameter [default: $params.species]
