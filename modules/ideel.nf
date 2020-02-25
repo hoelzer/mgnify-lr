@@ -10,7 +10,7 @@ process ideel {
 
   script:
     """
-    #!/usr/bin/Rscript
+    #!/usr/bin/env Rscript
     library(ggplot2)  
     data <- read.table("${results}", header=FALSE, sep='\\t')
     names(data) <- c('qlen', 'slen')
