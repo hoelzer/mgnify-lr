@@ -231,7 +231,7 @@ workflow analysis_wf {
         db_diamond
 
   main:
-        ideel(diamond(prodigal(assembly),db_diamond))
+        ideel(diamond(prodigal(assembly),db_diamond).view())
 }
 
 /************************** 
