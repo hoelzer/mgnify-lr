@@ -256,9 +256,14 @@ workflow {
       // assembly workflows
       if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, genome)
+
         assembly_polished = nanopore_assembly_wf.out[0]
         assembly_unpolished = nanopore_assembly_wf.out[3]
         assembly = assembly_polished.join(assembly_unpolished)
+
+        assembly_polished.view()
+        assembly_unpolished.view()
+
         if (params.study || params.sample || params.run) {
           ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
           ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
