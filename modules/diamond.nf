@@ -8,7 +8,7 @@ process diamond {
       tuple val(name), val(ASSEMBLY_STATUS), file("${name}.data")
     script:
       """
-      diamond blastp --threads ${task.cpus} --max-target-seqs 1 --db ${database} \
+      diamond blastp --threads ${task.cpus} --db ${database} \
       --query ${proteins} --outfmt 6 qlen slen --out ${name}.data
       """
 }
