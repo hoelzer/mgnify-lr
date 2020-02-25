@@ -231,7 +231,9 @@ workflow analysis_wf {
         db_diamond
 
   main:
-        ideel(diamond(prodigal(assembly),db_diamond).view())
+        //ideel(diamond(prodigal(assembly),db_diamond))
+        prodigal(assembly)
+        prodigal.out.view()
 }
 
 /************************** 
@@ -262,7 +264,7 @@ workflow {
         assembly_unpolished = nanopore_assembly_wf.out[3]
         filtered_ch = assembly_unpolished.map { name, reads, raw_assembly -> [name, raw_assembly] }
         assembly = filtered_ch.concat(assembly_polished)
-        assembly.view()
+        //assembly.view()
 
         if (params.study || params.sample || params.run) {
           ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
