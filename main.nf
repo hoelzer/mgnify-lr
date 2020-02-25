@@ -219,6 +219,7 @@ workflow nanopore_assembly_wf {
         assemblerOutput
         flye.out[1] // the flye.log
         estimate_gsize.out
+        assemblerUnpolished
 }
 
 
@@ -255,10 +256,12 @@ workflow {
       // assembly workflows
       if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, genome)
-        assembly = nanopore_assembly_wf.out[0]
+        assembly_polished = nanopore_assembly_wf.out[0]
+        assembly_unpolished = nanopore_assembly_wf.out[3]
+        assembly = assembly_polished.join(assembly_unpolished)
         if (params.study || params.sample || params.run) {
-          ena_manifest(assembly, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
-          ena_project_xml(assembly, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
         }
       }
       if (params.nano && params.illumina ) { 
@@ -271,13 +274,8 @@ workflow {
       }
 
       // analysis workflow
-      if (params.dia_db) { 
-        database_diamond = file(params.dia_db) 
-      } else {
-        download_diamond()
-        database_diamond = download_diamond.out
-      }
-
+      if (params.dia_db) { database_diamond = file(params.dia_db) } 
+      else { download_diamond(); database_diamond = download_diamond.out }
       analysis_wf(assembly, database_diamond)
 
 }
