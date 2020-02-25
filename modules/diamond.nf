@@ -5,7 +5,7 @@ process diamond {
       tuple val(name), env(ASSEMBLY_STATUS), file(proteins)
       file(database)
     output:
-      tuple val(name), file("${name}.data")
+      tuple val(name), env(ASSEMBLY_STATUS), file("${name}.data")
     script:
       """
       diamond blastp --threads ${task.cpus} --max-target-seqs 1 --db ${database} \
