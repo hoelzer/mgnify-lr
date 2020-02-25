@@ -1,3 +1,58 @@
+process minimap2_index_ont {
+  label 'minimap2'
+  if (params.cloudProcess) { 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+  }
+  else { 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
+  }  
+    input:
+  	  tuple val(name), file(fasta) 
+    output:
+      file("${name}.ont.mmi") 
+    script:
+      """
+      minimap2 -x map-ont -t ${task.cpus} -d ${name}.ont.mmi ${fasta}
+      """
+}
+
+process minimap2_index_ill {
+  label 'minimap2'
+  if (params.cloudProcess) { 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+  }
+  else { 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
+  }  
+    input:
+  	  tuple val(name), file(fasta) 
+    output:
+      file("${name}.ill.mmi") 
+    script:
+      """
+      minimap2 -x sr -t ${task.cpus} -d ${name}.ill.mmi ${fasta}
+      """
+}
+
+process minimap2_index_fna {
+  label 'minimap2'
+  if (params.cloudProcess) { 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+  }
+  else { 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
+  }  
+    input:
+  	  tuple val(name), file(fasta) 
+    output:
+      file("${name}.fna.mmi") 
+    script:
+      """
+      minimap2 -x asm5 -t ${task.cpus} -d ${name}.fna.mmi ${fasta}
+      """
+}
+
+
 process minimap2_to_polish {
   label 'minimap2'
     input:
@@ -32,7 +87,7 @@ process minimap2_to_decontaminate_fastq {
       sed 's/ /DECONTAMINATE/g' ${fastq} > ${name}.id.fastq
     fi
 
-    minimap2 -ax map-ont -t ${task.cpus} -o ${name}.sam ${db} ${name}.id.fastq
+    minimap2 -a -t ${task.cpus} -o ${name}.sam ${db} ${name}.id.fastq
     samtools fastq -f 4 -0 ${name}.clean.id.fastq ${name}.sam
     samtools fastq -F 4 -0 ${name}.contamination.id.fastq ${name}.sam
 
@@ -66,7 +121,7 @@ process minimap2_to_decontaminate_fasta {
       sed 's/ /DECONTAMINATE/g' ${fasta} > ${name}.id.fasta
     fi
 
-    minimap2 -ax asm5 -t ${task.cpus} -o ${name}.sam ${db} ${name}.id.fasta
+    minimap2 -a -t ${task.cpus} -o ${name}.sam ${db} ${name}.id.fasta
     samtools fasta -f 4 -0 ${name}.clean.id.fasta ${name}.sam
     samtools fasta -F 4 -0 ${name}.contamination.id.fasta ${name}.sam
 
