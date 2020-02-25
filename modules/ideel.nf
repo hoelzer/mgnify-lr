@@ -3,7 +3,7 @@ process ideel {
     label 'ggplot2'
 
   input:
-    tuple val(name), env(ASSEMBLY_STATUS), file(results) 
+    tuple val(name), val(ASSEMBLY_STATUS), file(results) 
 
   output:
 	  tuple val(name), file("${name}_${ASSEMBLY_STATUS}_ideel.pdf") 
