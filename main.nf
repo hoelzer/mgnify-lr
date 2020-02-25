@@ -261,9 +261,12 @@ workflow {
         assembly_unpolished = nanopore_assembly_wf.out[3]
         assembly = assembly_polished.join(assembly_unpolished)
 
-        assembly_polished.map { name, reads, raw_assembly -> [name, raw_assembly] }.view()
-        assembly_polished.view()
-        assembly_unpolished.view()
+        nanopore_assembly_wf.out[0]
+          .map { name, reads, raw_assembly -> [name, raw_assembly] }
+          .view()
+        
+        //assembly_polished.view()
+        //assembly_unpolished.view()
 
         if (params.study || params.sample || params.run) {
           ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
