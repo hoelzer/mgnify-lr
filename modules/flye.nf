@@ -3,10 +3,10 @@ process flye {
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_assembly.fasta"
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
 
-    errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
-    cpus { 20 * task.attempt }
-    memory { 120.GB * task.attempt }
-    maxRetries 3
+    //errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
+    //cpus { task.cpus }
+    //memory { task.memory * task.attempt }
+    //maxRetries 3
     
     input:
     tuple val(name), file(ont), file(genome_size)
