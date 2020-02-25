@@ -257,16 +257,12 @@ workflow {
       if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, genome)
 
+        // combine the draft and polished assembly for ideel here
         assembly_polished = nanopore_assembly_wf.out[0]
         assembly_unpolished = nanopore_assembly_wf.out[3]
-        assembly = assembly_polished.join(assembly_unpolished)
-
-        filtered_ch = nanopore_assembly_wf.out[3]
-          .map { name, reads, raw_assembly -> [name, raw_assembly] }
-          .view()
-        
-        //assembly_polished.view()
-        //assembly_unpolished.view()
+        filtered_ch = assembly_unpolished.map { name, reads, raw_assembly -> [name, raw_assembly] }
+        assembly = filtered_ch.join(assembly_unpolished)
+        assembly.view()
 
         if (params.study || params.sample || params.run) {
           ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
