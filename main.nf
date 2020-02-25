@@ -230,12 +230,7 @@ workflow analysis_wf {
         db_diamond
 
   main:
-        ideel(
-          diamond(
-            prodigal(assembly),
-            db_diamond
-          )
-        )
+        ideel(diamond(prodigal(assembly),db_diamond))
 }
 
 /************************** 
@@ -279,6 +274,7 @@ workflow {
       if (params.dia_db) { 
         database_diamond = file(params.dia_db) 
       } else {
+        download_diamond()
         database_diamond = download_diamond.out
       }
 
