@@ -263,7 +263,6 @@ workflow {
 
         filtered_ch = nanopore_assembly_wf.out[0]
           .map { name, reads, raw_assembly -> [name, raw_assembly] }
-          .view()
         
         //assembly_polished.view()
         //assembly_unpolished.view()
