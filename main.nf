@@ -261,7 +261,7 @@ workflow {
         assembly_polished = nanopore_assembly_wf.out[0]
         assembly_unpolished = nanopore_assembly_wf.out[3]
         filtered_ch = assembly_unpolished.map { name, reads, raw_assembly -> [name, raw_assembly] }
-        assembly = filtered_ch.join(assembly_unpolished)
+        assembly = filtered_ch.concat(assembly_polished)
         assembly.view()
 
         if (params.study || params.sample || params.run) {
