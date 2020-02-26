@@ -194,8 +194,10 @@ workflow hybrid_assembly_wf {
 
       if (params.assemblerHybrid == 'spades') {
         spades(nano_input_ch.join(illumina_input_ch))
-        assemblerOutput = spades.out[0]
+        assemblerUnpolished = spades.out[0]
         graphOutput = spades.out[1]
+        pilon(assemblerUnpolished, illumina_input_ch)
+        assemblerOutput = pilon.out
       }
       assemblerUnpolished = false
       if (params.assemblerHybrid == 'flye') {
