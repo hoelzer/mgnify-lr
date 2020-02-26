@@ -2,6 +2,8 @@ process ideel {
     publishDir "${params.output}/${name}/ideel", mode: 'copy', pattern: "${name}_${ASSEMBLY_STATUS}_ideel.pdf"
     label 'ggplot2'
 
+    errorStrategy 'ignore'
+
   input:
     tuple val(name), val(ASSEMBLY_STATUS), file(results) 
 

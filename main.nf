@@ -108,8 +108,9 @@ include pilon from './modules/pilon'
 include minimap2_index_ont from './modules/minimap2' 
 include minimap2_index_ill from './modules/minimap2' 
 include minimap2_index_fna from './modules/minimap2' 
-include minimap2_to_decontaminate_fastq from './modules/minimap2' 
-include minimap2_to_decontaminate_fasta from './modules/minimap2' 
+include clean_ont as minimap2_to_decontaminate_fastq from './modules/minimap2' 
+include clean_assembly as minimap2_to_decontaminate_fasta from './modules/minimap2' 
+include clean_ill as minimap2_to_decontaminate_ill from './modules/minimap2' 
 
 // analysis
 include prodigal from './modules/prodigal'
@@ -183,12 +184,12 @@ workflow hybrid_assembly_wf {
 
       // decontaminate reads if a host genome is provided 
       if (index_ont) {
-        minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
-        nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
+        clean_ont(nano_input_ch, index_ont)
+        nano_input_ch = clean_ont.out[0]
       }
       if (index_ill) {
-        minimap2_to_decontaminate_ill(illumina_input_ch, index_ill)
-        illumina_input_ch = minimap2_to_decontaminate_ill.out[0]
+        clean_ill(illumina_input_ch, index_ill)
+        illumina_input_ch = clean_ill.out[0]
       }
 
       if (params.assemblerHybrid == 'spades') {
@@ -207,8 +208,8 @@ workflow hybrid_assembly_wf {
       }
 
       if (index_fna) {
-        minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
-        assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
+        clean_assembly(assemblerOutput, index_fna)
+        assemblerOutput = clean_assembly.out[0]
       }
 
       if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
@@ -233,8 +234,8 @@ workflow nanopore_assembly_wf {
 
       // decontaminate reads if a host genome is provided
       if (index_ont) {
-        minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
-        nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
+        clean_ont(nano_input_ch, index_ont)
+        nano_input_ch = clean_ont.out[0]
       }
 
       // size estimation for flye 
@@ -246,8 +247,8 @@ workflow nanopore_assembly_wf {
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
       if (index_fna) {
-        minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
-        assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
+        clean_assembly(assemblerOutput, index_fna)
+        assemblerOutput = clean_assembly.out[0]
       }
 
   emit:   
