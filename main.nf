@@ -215,6 +215,7 @@ workflow hybrid_assembly_wf {
       }
 
       if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
+      assemblerOutput.view()
   emit:   
         assemblerOutput
 }
