@@ -26,6 +26,8 @@ process get_host {
       wget ftp://ftp.ensemblgenomes.org/pub/release-45/bacteria//fasta/bacteria_90_collection/escherichia_coli_k_12/dna/Escherichia_coli_k_12.ASM80076v1.dna.toplevel.fa.gz
       mv *.fa.gz ${params.species}.fa.gz
     fi
+
+
     """
 }
 

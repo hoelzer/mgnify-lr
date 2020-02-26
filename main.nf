@@ -71,6 +71,14 @@ nano_input_ch = Channel
   .view()
 }
 
+// user defined host genome fasta
+if (params.host) {
+  host_input_ch = Channel
+    .fromPath( params.host, checkIfExists: true)
+    .map { file -> tuple(file.simpleName, file) }
+    .view()
+}
+
 /************************** 
 * MODULES
 **************************/
@@ -92,10 +100,16 @@ include estimate_gsize from './modules/estimate_gsize'
 include flye from './modules/flye'
 include spades from './modules/spades'
 include minimap2_to_polish from './modules/minimap2'
-include minimap2_to_decontaminate_fastq from './modules/minimap2' 
-include minimap2_to_decontaminate_fasta from './modules/minimap2' 
 include racon from './modules/racon'
 include medaka from './modules/medaka' 
+include pilon from './modules/pilon' 
+
+// decontamination
+include minimap2_index_ont from './modules/minimap2' 
+include minimap2_index_ill from './modules/minimap2' 
+include minimap2_index_fna from './modules/minimap2' 
+include minimap2_to_decontaminate_fastq from './modules/minimap2' 
+include minimap2_to_decontaminate_fasta from './modules/minimap2' 
 
 // analysis
 include prodigal from './modules/prodigal'
@@ -124,14 +138,11 @@ workflow download_host_genome {
     if (!params.cloudProcess) { get_host(); db = get_host.out }
     // cloud storage via db_preload.exists()
     else {
-      if (params.phix) {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}_phix/${params.species}_phix.fa.gz")
-      } else {
         db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
       }
-      if (db_preload.exists()) { db = db_preload }
-      else  { get_host(); db = get_host.out } 
-    }
+    if (db_preload.exists()) { db = db_preload }
+    else  { get_host(); db = get_host.out } 
+
   emit: db
 }
 
@@ -157,28 +168,50 @@ workflow download_diamond {
 workflow hybrid_assembly_wf {
   take:  nano_input_ch
          illumina_input_ch
-         host_genome
+         index_ont
+         index_fna
+         index_ill
 
   main:
       // trimming and QC of reads
+        nanoplot(nano_input_ch)
         removeSmallReads(nano_input_ch)
+        nano_input_ch = removeSmallReads.out
+
         fastp(illumina_input_ch)
         illumina_input_ch = fastp.out[0]
-        nanoplot(nano_input_ch)
 
       // decontaminate reads if a host genome is provided 
-      // TODO: decontaminate short reads as well
-      if (host_genome) {
-        minimap2_to_decontaminate_fastq(removeSmallReads.out, host_genome)
+      if (index_ont) {
+        minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
         nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
-        //bowtie2_to_decontaminate_fastq(fastp.out)
-        //illumina_input_ch = bowtie2_to_decontaminate_fastq.out[0]
+      }
+      if (index_ill) {
+        minimap2_to_decontaminate_ill(illumina_input_ch, index_ill)
+        illumina_input_ch = minimap2_to_decontaminate_ill.out[0]
       }
 
-      spades(removeSmallReads.out.join(illumina_input_ch))
-      assemblerOutput = spades.out[0]
-      graphOutput = spades.out[1]
+      if (params.assemblerHybrid == 'spades') {
+        spades(nano_input_ch.join(illumina_input_ch))
+        assemblerOutput = spades.out[0]
+        graphOutput = spades.out[1]
+      }
+      assemblerUnpolished = false
+      if (params.assemblerHybrid == 'flye') {
+        estimate_gsize(nano_input_ch)
+        flye(nano_input_ch.join(estimate_gsize.out))
+        assemblerUnpolished = flye.out[0]
+        medaka(racon(minimap2_to_polish(assemblerUnpolished)))
+        pilon(medaka.out, illumina_input_ch)
+        assemblerOutput = pilon.out
+      }
 
+      if (index_fna) {
+        minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
+        assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
+      }
+
+      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
   emit:   
         assemblerOutput
 }
@@ -189,29 +222,31 @@ workflow hybrid_assembly_wf {
 /**********************************************************************/
 workflow nanopore_assembly_wf {
   take:  nano_input_ch
-         host_genome
+         index_ont
+         index_fna
 
   main:
+      // trimming and QC of reads
+        nanoplot(nano_input_ch)
+        removeSmallReads(nano_input_ch)
+        nano_input_ch = removeSmallReads.out
+
       // decontaminate reads if a host genome is provided
-      if (host_genome) {
-        minimap2_to_decontaminate_fastq(nano_input_ch, host_genome)
+      if (index_ont) {
+        minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
         nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
       }
 
-      // trimming and QC of reads
-        removeSmallReads(nano_input_ch)
-        nanoplot(nano_input_ch)
-
-      // size estimation for flye // not working well - bc not installed n sourmash nanozoo container
+      // size estimation for flye 
         if (params.assemblerLong == 'flye') { estimate_gsize(nano_input_ch) }
 
       // assembly with assembler choice via --assemblerLong; assemblerOutput should be the emiting channel
-        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
+        if (params.assemblerLong == 'flye') { flye(nano_input_ch.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
         if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
-      if (host_genome) {
-        minimap2_to_decontaminate_fasta(assemblerOutput, host_genome)
+      if (index_fna) {
+        minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
         assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
       }
 
@@ -234,6 +269,25 @@ workflow analysis_wf {
         ideel(diamond(prodigal(assembly),db_diamond))
 }
 
+
+/**********************************************************************/
+/* Indices Workflow 
+/**********************************************************************/
+workflow index_wf {
+  take: host
+
+  main:
+    minimap2_index_ont(host)
+    minimap2_index_fna(host)
+    minimap2_index_ill(host)
+
+  emit:
+    minimap2_index_ont.out
+    minimap2_index_fna.out
+    minimap2_index_ill.out
+}
+
+
 /************************** 
 * WORKFLOW ENTRY POINT
 **************************/
@@ -242,20 +296,40 @@ workflow analysis_wf {
 
 workflow {
 
-      // get host for read decontamination
-      genome = false
+      index_ont = false
+      index_fna = false
+      index_ill = false
+
+      // 1) check for user defined minimap2 indices 
+      if (params.index_ont) { index_ont = file(params.index_ont, checkIfExists: true) }
+      if (params.index_fna) { index_fna = file(params.index_fna, checkIfExists: true) }
+      if (params.index_ill) { index_ill = file(params.index_ill, checkIfExists: true) }
+
+      // 2) build indices if just a fasta is provided
+      // WIP
       if (params.host) {
-        genome = file(params.host, checkIfExists: true)
+        index_wf(host_input_ch)
+        index_ont = index_wf.out[0]
+        index_fna = index_wf.out[1]
+        index_ill = index_wf.out[2]
       }
 
+      // 3) download genome and build indices
+      // WIP
       if (params.species) { 
         download_host_genome()
         genome = download_host_genome.out
+        host_input_ch = Channel.of( [params.species, genome] )
+        index_wf(host_input_ch)
+        index_ont = index_wf.out[0]
+        index_fna = index_wf.out[1]
+        index_ill = index_wf.out[2]
       }
-
+      
       // assembly workflows
+      // ONT
       if (params.nano && !params.illumina || params.sra ) { 
-        nanopore_assembly_wf(nano_input_ch, genome)
+        nanopore_assembly_wf(nano_input_ch, index_ont, index_fna)
 
         // combine the draft and polished assembly for ideel here
         assembly_polished = nanopore_assembly_wf.out[0]
@@ -269,8 +343,10 @@ workflow {
           ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
         }
       }
+
+      // HYBRID
       if (params.nano && params.illumina ) { 
-        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, genome)
+        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, index_ont, index_fna, index_ill)
         assembly = hybrid_assembly_wf.out
         if (params.study || params.sample || params.run) {
           ena_manifest_hybrid(assembly)
@@ -282,6 +358,7 @@ workflow {
       if (params.dia_db) { database_diamond = file(params.dia_db) } 
       else { download_diamond(); database_diamond = download_diamond.out }
       analysis_wf(assembly, database_diamond)
+
 
 }
 
@@ -309,27 +386,41 @@ def helpMSG() {
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
     ${c_green} --sra ${c_reset}             ERR3407986                  -> Run acc, currently only for ONT data supported
-    ${c_green} --host ${c_reset}            host.fasta.gz               -> one host file for decontamination
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
+    --memory            max memory for local use [default: $params.cores]
     --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
     --length            cutoff for ONT read length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades, default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]
 
-    ${c_yellow}Custom Databases:${c_reset}
+    ${c_yellow}Custom databases:${c_reset}
      --dia_db      input for diamond database e.g.: 'databases/database_uniprot.dmnd
 
     ${c_yellow}Decontamination:${c_reset}
+    You have three options to provide references for decontamination:
+
+    1) Provide prepared minimap2 indices...
+    --index_ont     minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.index_ont]
+    --index_fna     minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.index_fna]
+    --index_ill     minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.index_ill]
+
+    2) Or use your own FASTA...
+    --host          use your own FASTA sequence for decontamination, e.g., host.fasta.gz. minimap2 indices will be calculated for you. [default: $params.host]
+
+    3) Or let me download a defined host. 
+    Per default phiX and the ONT DCS positive controls are added to the index.
+    You can remove controls from the index by additionally specifying the parameters below.   
     --species       reference genome for decontamination is selected based on this parameter [default: $params.species]
                                         ${c_dim}Currently supported are:
                                         - hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
                                         - mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
                                         - eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]${c_reset}
-
+    --phix       do not use phix in decontamination [Illumina: enterobacteria_phage_phix174_sensu_lato_uid14015, NC_001422]
+    --dcs        do not use DCS in decontamination [ONT DNA-Seq: 3.6 kb standard amplicon mapping the 3' end of the Lambda genome]
 
     ${c_yellow}ENA parameters:${c_reset}
     --study             ENA study ID [default: $params.study]
@@ -351,8 +442,10 @@ def helpMSG() {
     --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
 
     Profile:
-    -profile                 standard (local, pure docker) [default]
-                             conda (mixes conda and docker)
+    -profile                 local [default]
+                             conda
+                             docker
+                             singularity
                              lsf (HPC w/ LSF, singularity/docker)
                              ebi (EBI cluster specific, singularity and docker)
                              gcloud (googlegenomics and docker)
