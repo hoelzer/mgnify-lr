@@ -102,6 +102,7 @@ include spades from './modules/spades'
 include minimap2_to_polish from './modules/minimap2'
 include racon from './modules/racon'
 include medaka from './modules/medaka' 
+include pilon from './modules/pilon' 
 
 // decontamination
 include minimap2_index_ont from './modules/minimap2' 
@@ -190,15 +191,27 @@ workflow hybrid_assembly_wf {
         illumina_input_ch = minimap2_to_decontaminate_ill.out[0]
       }
 
-      spades(nano_input_ch.join(illumina_input_ch))
-      assemblerOutput = spades.out[0]
-      graphOutput = spades.out[1]
+      if (params.assemblerHybrid == 'spades') {
+        spades(nano_input_ch.join(illumina_input_ch))
+        assemblerOutput = spades.out[0]
+        graphOutput = spades.out[1]
+      }
+      assemblerUnpolished = false
+      if (params.assemblerHybrid == 'flye') {
+        estimate_gsize(nano_input_ch)
+        flye(nano_input_ch.join(estimate_gsize.out))
+        assemblerUnpolished = flye.out[0]
+        medaka(racon(minimap2_to_polish(assemblerUnpolished)))
+        pilon(medaka.out, illumina_input_ch)
+        assemblerOutput = pilon.out
+      }
 
       if (index_fna) {
         minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
         assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
       }
 
+      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
   emit:   
         assemblerOutput
 }
@@ -377,6 +390,7 @@ def helpMSG() {
 
     ${c_yellow}Options:${c_reset}
     --cores             max cores for local use [default: $params.cores]
+    --memory            max memory for local use [default: $params.cores]
     --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
     --length            cutoff for ONT read length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades, default: $params.assemblerHybrid]
@@ -428,8 +442,10 @@ def helpMSG() {
     --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
 
     Profile:
-    -profile                 standard (local, pure docker) [default]
-                             conda (mixes conda and docker)
+    -profile                 local [default]
+                             conda
+                             docker
+                             singularity
                              lsf (HPC w/ LSF, singularity/docker)
                              ebi (EBI cluster specific, singularity and docker)
                              gcloud (googlegenomics and docker)

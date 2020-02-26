@@ -30,19 +30,19 @@ Hybrid data needs to have matching simpleNames such as ``sample1.fastq.gz`` (ONT
 
 After pulling this git:
 ```
-nextflow run main.nf --nano test_data/ERR3662306_1_small.fastq.gz -profile local,container,docker
+nextflow run main.nf --nano test_data/ERR3662306_1_small.fastq.gz -profile local,docker
 ```
 
 or let nextflow pull this git:
 
 ```
-nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output -profile local,container,docker
+nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output -profile local,docker
 ```
 
 to also decontaminate your reads and final assembly just add a ``--species`` like this:
 
 ```
-nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output --species eco -profile local,container,docker
+nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output --species eco -profile local,docker
 ```
 
 Currently supported species are:
@@ -56,7 +56,7 @@ This workflow comes with some pre-defined profiles for local execution and execu
 
 For the most _basic_ execution on a local machine using Docker use: 
 ```
--profile local,container,docker
+-profile local,docker
 ```
 
 If you want to use Conda instead of Docker:
@@ -66,7 +66,7 @@ If you want to use Conda instead of Docker:
 
 If you want to run on a HPC w/ LSF and Singularity use:
 ```
--profile lsf,container,singularity
+-profile lsf,docker,singularity
 # In that case you should also adjust --cachedir, --workdir, --databases to match your HPC environment
 ```
 
