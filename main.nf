@@ -242,12 +242,15 @@ workflow nanopore_assembly_wf {
       }
 
       // size estimation for flye 
-        if (params.assemblerLong == 'flye') { estimate_gsize(nano_input_ch) }
+        if (params.assemblerLong == 'flye') { 
+          estimate_gsize(nano_input_ch) 
+          flye(nano_input_ch.join(estimate_gsize.out))
+          assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+          medaka(racon(minimap2_to_polish(flye.out[0])))
+          assemblerOutput = medaka.out 
+        }
 
-      // assembly with assembler choice via --assemblerLong; assemblerOutput should be the emiting channel
-        if (params.assemblerLong == 'flye') { flye(nano_input_ch.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
-        if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
-        if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
+      assemblerOutput = assemblerOutput.concat(assemblerUnpolished)
 
       if (index_fna) {
         clean_assembly(assemblerOutput, index_fna)
@@ -258,7 +261,6 @@ workflow nanopore_assembly_wf {
         assemblerOutput
         flye.out[1] // the flye.log
         estimate_gsize.out
-        assemblerUnpolished
 }
 
 
@@ -334,14 +336,7 @@ workflow {
       // ONT
       if (params.nano && !params.illumina || params.sra ) { 
         nanopore_assembly_wf(nano_input_ch, index_ont, index_fna)
-
-        // combine the draft and polished assembly for ideel here
-        assembly_polished = nanopore_assembly_wf.out[0]
-        assembly_unpolished = nanopore_assembly_wf.out[3]
-        filtered_ch = assembly_unpolished.map { name, reads, raw_assembly -> [name, raw_assembly] }
-        assembly = filtered_ch.concat(assembly_polished)
-        //assembly.view()
-
+        assembly = nanopore_assembly_wf.out[0]
         if (params.study || params.sample || params.run) {
           ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
           ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
