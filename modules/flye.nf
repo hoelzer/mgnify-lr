@@ -4,7 +4,7 @@ process flye {
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
 
     errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
-    cpus { 32 }
+    cpus { 30 }
     memory { 120.GB * task.attempt }
     clusterOptions { '-P bigmem' }
     maxRetries 3
