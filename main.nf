@@ -192,6 +192,7 @@ workflow hybrid_assembly_wf {
         illumina_input_ch = clean_ill.out[0]
       }
 
+      assemblerUnpolished = false
       if (params.assemblerHybrid == 'spades') {
         spades(nano_input_ch.join(illumina_input_ch))
         assemblerUnpolished = spades.out[0]
@@ -199,7 +200,6 @@ workflow hybrid_assembly_wf {
         pilon(assemblerUnpolished, illumina_input_ch)
         assemblerOutput = pilon.out
       }
-      assemblerUnpolished = false
       if (params.assemblerHybrid == 'flye') {
         estimate_gsize(nano_input_ch)
         flye(nano_input_ch.join(estimate_gsize.out))
@@ -209,13 +209,14 @@ workflow hybrid_assembly_wf {
         assemblerOutput = pilon.out
       }
 
+      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
+      assemblerOutput.view()
+
       if (index_fna) {
         clean_assembly(assemblerOutput, index_fna)
         assemblerOutput = clean_assembly.out[0]
       }
 
-      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
-      assemblerOutput.view()
   emit:   
         assemblerOutput
 }
