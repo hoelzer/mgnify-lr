@@ -203,8 +203,8 @@ workflow hybrid_assembly_wf {
       if (params.assemblerHybrid == 'flye') {
         estimate_gsize(nano_input_ch)
         flye(nano_input_ch.join(estimate_gsize.out))
-        assemblerUnpolished = flye.out[0]
-        medaka(racon(minimap2_to_polish(assemblerUnpolished)))
+        assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+        medaka(racon(minimap2_to_polish(flye.out[0])))
         pilon(medaka.out, illumina_input_ch)
         assemblerOutput = pilon.out
       }
