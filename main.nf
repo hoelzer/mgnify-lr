@@ -210,7 +210,6 @@ workflow hybrid_assembly_wf {
       }
 
       if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
-      assemblerOutput.view()
 
       if (index_fna) {
         clean_assembly(assemblerOutput, index_fna)

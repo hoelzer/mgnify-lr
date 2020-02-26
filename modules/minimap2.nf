@@ -143,8 +143,8 @@ process minimap2_to_decontaminate_ill {
     file(db)
 
   output:
-    tuple val(name), file("*clean.fastq.gz")
-    tuple val(name), file("*contamination.fastq.gz")
+    tuple val(name), file("*clean*.fastq.gz")
+    tuple val(name), file("*contamination*.fastq.gz")
 
   script:
     """
