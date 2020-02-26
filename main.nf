@@ -397,7 +397,7 @@ def helpMSG() {
     --memory            max memory for local use [default: $params.cores]
     --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
     --length            cutoff for ONT read length filtering [default: $params.length]
-    --assemblerHybrid   hybrid assembly tool used [spades, default: $params.assemblerHybrid]
+    --assemblerHybrid   hybrid assembly tool used [spades, flye default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]
 
