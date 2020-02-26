@@ -139,9 +139,9 @@ workflow download_host_genome {
     else {
         db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
       }
-      if (db_preload.exists()) { db = db_preload }
-      else  { get_host(); db = get_host.out } 
-    }
+    if (db_preload.exists()) { db = db_preload }
+    else  { get_host(); db = get_host.out } 
+
   emit: db
 }
 
@@ -167,27 +167,37 @@ workflow download_diamond {
 workflow hybrid_assembly_wf {
   take:  nano_input_ch
          illumina_input_ch
-         host_genome
+         index_ont
+         index_fna
+         index_ill
 
   main:
       // trimming and QC of reads
+        nanoplot(nano_input_ch)
         removeSmallReads(nano_input_ch)
+        nano_input_ch = removeSmallReads.out
+
         fastp(illumina_input_ch)
         illumina_input_ch = fastp.out[0]
-        nanoplot(nano_input_ch)
 
       // decontaminate reads if a host genome is provided 
-      // TODO: decontaminate short reads as well
-      if (host_genome) {
-        minimap2_to_decontaminate_fastq(removeSmallReads.out, host_genome)
+      if (index_ont) {
+        minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
         nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
-        //bowtie2_to_decontaminate_fastq(fastp.out)
-        //illumina_input_ch = bowtie2_to_decontaminate_fastq.out[0]
+      }
+      if (index_ill) {
+        minimap2_to_decontaminate_ill(illumina_input_ch, index_ill)
+        illumina_input_ch = minimap2_to_decontaminate_ill.out[0]
       }
 
-      spades(removeSmallReads.out.join(illumina_input_ch))
+      spades(nano_input_ch.join(illumina_input_ch))
       assemblerOutput = spades.out[0]
       graphOutput = spades.out[1]
+
+      if (index_fna) {
+        minimap2_to_decontaminate_fasta(assemblerOutput, index_fna)
+        assemblerOutput = minimap2_to_decontaminate_fasta.out[0]
+      }
 
   emit:   
         assemblerOutput
@@ -203,21 +213,22 @@ workflow nanopore_assembly_wf {
          index_fna
 
   main:
+      // trimming and QC of reads
+        nanoplot(nano_input_ch)
+        removeSmallReads(nano_input_ch)
+        nano_input_ch = removeSmallReads.out
+
       // decontaminate reads if a host genome is provided
       if (index_ont) {
         minimap2_to_decontaminate_fastq(nano_input_ch, index_ont)
         nano_input_ch = minimap2_to_decontaminate_fastq.out[0]
       }
 
-      // trimming and QC of reads
-        removeSmallReads(nano_input_ch)
-        nanoplot(nano_input_ch)
-
-      // size estimation for flye // not working well - bc not installed n sourmash nanozoo container
+      // size estimation for flye 
         if (params.assemblerLong == 'flye') { estimate_gsize(nano_input_ch) }
 
       // assembly with assembler choice via --assemblerLong; assemblerOutput should be the emiting channel
-        if (params.assemblerLong == 'flye') { flye(removeSmallReads.out.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
+        if (params.assemblerLong == 'flye') { flye(nano_input_ch.join(estimate_gsize.out)) ; assemblerUnpolished = flye.out[0]}
         if (params.assemblerLong == 'flye') { medaka(racon(minimap2_to_polish(assemblerUnpolished))) }
         if (params.assemblerLong == 'flye') { assemblerOutput = medaka.out }
 
@@ -282,6 +293,7 @@ workflow {
       if (params.index_ill) { index_ill = file(params.index_ill, checkIfExists: true) }
 
       // 2) build indices if just a fasta is provided
+      // WIP
       if (params.host) {
         index_wf(host_input_ch)
         index_ont = index_wf.out[0]
@@ -290,6 +302,7 @@ workflow {
       }
 
       // 3) download genome and build indices
+      // WIP
       if (params.species) { 
         download_host_genome()
         genome = download_host_genome.out
@@ -320,7 +333,7 @@ workflow {
 
       // HYBRID
       if (params.nano && params.illumina ) { 
-        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, genome)
+        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, index_ont, index_fna, index_ill)
         assembly = hybrid_assembly_wf.out
         if (params.study || params.sample || params.run) {
           ena_manifest_hybrid(assembly)

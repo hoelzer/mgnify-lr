@@ -132,3 +132,60 @@ process minimap2_to_decontaminate_fasta {
     rm ${name}.sam ${name}.clean.id.fasta ${name}.contamination.id.fasta ${name}.id.fasta
     """
 }
+
+
+process minimap2_to_decontaminate_ill {
+  label 'minimap2'
+  publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fastq.gz"  
+
+  input: 
+    tuple val(name), file(reads)
+    file(db)
+
+  output:
+    tuple val(name), file("*clean.fastq.gz")
+    tuple val(name), file("*contamination.fastq.gz")
+
+  script:
+    """
+    # replace the space in the header to retain the full read IDs after mapping (the mapper would split the ID otherwise after the first space)
+    # this is working for ENA reads that have at the end of a read id '/1' or '/2'
+    EXAMPLE_ID=\$(zcat ${reads[0]} | head -1)
+    if [[ \$EXAMPLE_ID == */1 ]]; then 
+      if [[ ${reads[0]} =~ \\.gz\$ ]]; then
+        zcat ${reads[0]} | sed 's/ /DECONTAMINATE/g' > ${name}.R1.id.fastq
+      else
+       sed 's/ /DECONTAMINATE/g' ${reads[0]} > ${name}.R1.id.fastq
+     fi
+     if [[ ${reads[1]} =~ \\.gz\$ ]]; then
+       zcat ${reads[1]} | sed 's/ /DECONTAMINATE/g' > ${name}.R2.id.fastq
+     else
+       sed 's/ /DECONTAMINATE/g' ${reads[1]} > ${name}.R2.id.fastq
+     fi
+    else
+      # this is for paried-end SRA reads that don't follow the ENA pattern
+      if [[ ${reads[0]} =~ \\.gz\$ ]]; then
+        zcat ${reads[0]} > ${name}.R1.id.fastq
+        zcat ${reads[1]} > ${name}.R2.id.fastq
+      else
+        cp ${reads[0]} ${name}.R1.id.fastq
+        cp ${reads[1]} ${name}.R2.id.fastq
+      fi
+    fi
+
+    # Use samtools -F 2 to discard only reads mapped in proper pair:
+    minimap2 -ax sr -t ${task.cpus} -o ${name}.sam ${db} ${name}.R1.id.fastq ${name}.R2.id.fastq
+    samtools fastq -F 2 -1 ${name}.clean.R1.id.fastq -2 ${name}.clean.R2.id.fastq ${name}.sam
+    samtools fastq -f 2 -1 ${name}.contamination.R1.id.fastq -2 ${name}.contamination.R2.id.fastq ${name}.sam
+    
+    # restore the original read IDs
+    sed 's/DECONTAMINATE/ /g' ${name}.clean.R1.id.fastq | awk 'BEGIN{LINE=0};{if(LINE % 4 == 0 || LINE == 0){print \$0"/1"}else{print \$0};LINE++;}' | gzip > ${name}.clean.R1.fastq.gz 
+    sed 's/DECONTAMINATE/ /g' ${name}.clean.R2.id.fastq | awk 'BEGIN{LINE=0};{if(LINE % 4 == 0 || LINE == 0){print \$0"/2"}else{print \$0};LINE++;}' | gzip > ${name}.clean.R2.fastq.gz
+    sed 's/DECONTAMINATE/ /g' ${name}.contamination.R1.id.fastq | awk 'BEGIN{LINE=0};{if(LINE % 4 == 0 || LINE == 0){print \$0"/1"}else{print \$0};LINE++;}' | gzip > ${name}.contamination.R1.fastq.gz 
+    sed 's/DECONTAMINATE/ /g' ${name}.contamination.R2.id.fastq | awk 'BEGIN{LINE=0};{if(LINE % 4 == 0 || LINE == 0){print \$0"/2"}else{print \$0};LINE++;}' | gzip > ${name}.contamination.R2.fastq.gz
+
+    # remove intermediate files
+    rm ${name}.R1.id.fastq ${name}.R2.id.fastq ${name}.clean.R1.id.fastq ${name}.clean.R2.id.fastq ${name}.contamination.R1.id.fastq ${name}.contamination.R2.id.fastq ${name}.sam
+
+    """
+}
