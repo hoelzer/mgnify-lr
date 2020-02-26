@@ -108,9 +108,9 @@ include pilon from './modules/pilon'
 include minimap2_index_ont from './modules/minimap2' 
 include minimap2_index_ill from './modules/minimap2' 
 include minimap2_index_fna from './modules/minimap2' 
-include clean_ont as minimap2_to_decontaminate_fastq from './modules/minimap2' 
-include clean_assembly as minimap2_to_decontaminate_fasta from './modules/minimap2' 
-include clean_ill as minimap2_to_decontaminate_ill from './modules/minimap2' 
+include minimap2_to_decontaminate_fastq as clean_ont from './modules/minimap2' 
+include minimap2_to_decontaminate_fasta as clean_assembly from './modules/minimap2' 
+include minimap2_to_decontaminate_ill as clean_ill from './modules/minimap2' 
 
 // analysis
 include prodigal from './modules/prodigal'
