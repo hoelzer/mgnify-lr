@@ -36,6 +36,7 @@ process estimate_gsize {
         TMP=/tmp
         gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
+        cp genome_size.txt estimated_genome_size.txt
         size=\$(cat genome_size.txt)
         if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 10 ]]; then
             echo '10m' > genome_size.txt
@@ -50,6 +51,7 @@ process estimate_gsize {
         TMP=/scratch
         gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
+        cp genome_size.txt estimated_genome_size.txt
         size=\$(cat genome_size.txt)
         if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 10 ]]; then
             echo '10m' > genome_size.txt
