@@ -14,7 +14,7 @@ process spades {
         tuple val(name), file("${name}_raw_assembly.fasta")
     script:
         """
-        spades.py --only-assembler -1 ${illumina[0]} -2 ${illumina[1]} --meta --nanopore ${ont} -o spades_output -t ${task.cpus}
+        spades.py --only-assembler -1 ${illumina[0]} -2 ${illumina[1]} --meta --nanopore ${ont} -o spades_output -t ${task.cpus} -m ${task.memory}
         mv spades_output/contigs.fasta  ${name}_raw_assembly.fasta
         """
 }
