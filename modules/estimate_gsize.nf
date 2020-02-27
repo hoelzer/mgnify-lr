@@ -28,12 +28,14 @@ process estimate_gsize {
         
 
     shell:
+    // gess.py seems to throw an error that is not recognized here and so the workflow continues with wrong gsize estimation
     if (task.attempt.toString() == '1')
     """
     if [[ "${params.gsize}" != "" ]]; then
         echo "${params.gsize}m" > genome_size.txt
     else
-        TMP=/tmp
+        # CHANGE THIS TO /tmp when error handling works
+        TMP=/scratch
         gess.py --threads ${task.cpus} --cutoff 3 ${reads} -t \$TMP | awk 'BEGIN{FS=" "};{print \$5"m"}' > genome_size.txt
 
         cp genome_size.txt estimated_genome_size.txt
