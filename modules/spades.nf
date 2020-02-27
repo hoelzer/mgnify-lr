@@ -1,6 +1,13 @@
 process spades {
-        label 'spades'
-        publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_assembly.fasta"
+    label 'spades'
+    publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_assembly.fasta"
+
+    errorStrategy { 'retry' }
+    cpus { 36 }
+    memory { 400.GB * task.attempt }
+    clusterOptions { '-P bigmem' }
+    maxRetries 3
+
     input:
         tuple val(name), file(ont), file(illumina)
     output:
