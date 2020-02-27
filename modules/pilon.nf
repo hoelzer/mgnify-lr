@@ -1,6 +1,13 @@
 process pilon {
   label 'pilon'
         publishDir "${params.output}/${name}/assembly", mode: 'copy', pattern: "${name}_pilon_polished.fasta"
+
+    errorStrategy { 'retry' }
+    cpus { 24 }
+    memory { 80.GB * task.attempt }
+    clusterOptions { '-P bigmem' }
+    maxRetries 3
+      
       input:
         tuple val(name), file(assembly)
         tuple val(read_name), file(read) 
