@@ -113,6 +113,8 @@ process minimap2_to_decontaminate_fasta {
 
   script:
     """
+    # get the basename of the assembly to not overwrite output
+    BN=\$(basename ${fasta} .fasta)
 
     # remove spaces in fasta IDs to keep them in the later cleaned output
     if [[ ${fasta} =~ \\.gz\$ ]]; then
@@ -126,8 +128,8 @@ process minimap2_to_decontaminate_fasta {
     samtools fasta -F 4 -0 ${name}.contamination.id.fasta ${name}.sam
 
 
-    sed 's/DECONTAMINATE/ /g' ${name}.clean.id.fasta > ${name}_polished_clean.fasta
-    sed 's/DECONTAMINATE/ /g' ${name}.contamination.id.fasta > ${name}_polished_contamination.fasta
+    sed 's/DECONTAMINATE/ /g' ${name}.clean.id.fasta > \${BN}_clean.fasta
+    sed 's/DECONTAMINATE/ /g' ${name}.contamination.id.fasta > \${BN}_contamination.fasta
      
     rm ${name}.sam ${name}.clean.id.fasta ${name}.contamination.id.fasta ${name}.id.fasta
     """
