@@ -176,7 +176,7 @@ process minimap2_to_decontaminate_ill {
     fi
 
     # Use samtools -F 2 to discard only reads mapped in proper pair:
-    minimap2 -ax sr -t ${task.cpus} -o ${name}.sam ${db} ${name}.R1.id.fastq ${name}.R2.id.fastq
+    minimap2 -a -t ${task.cpus} -o ${name}.sam ${db} ${name}.R1.id.fastq ${name}.R2.id.fastq
     samtools fastq -F 2 -1 ${name}.clean.R1.id.fastq -2 ${name}.clean.R2.id.fastq ${name}.sam
     samtools fastq -f 2 -1 ${name}.contamination.R1.id.fastq -2 ${name}.contamination.R2.id.fastq ${name}.sam
     
