@@ -76,11 +76,8 @@ If you want to run on a HPC w/ LSF and Singularity use:
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile local,docker --output results/test_ont-only
 ```
-
-<img width="120px" src="ideel/test_ont-only/test_raw_assembly_ideel.png">
-
-![ideel_raw](ideel/test_ont-only/test_raw_assembly_ideel.png)
-![ideel_polished](ideel/test_ont-only/test_polished_ideel.png)
+<img width="320px" src="ideel/test_ont-only/test_raw_assembly_ideel.png">
+<img width="320px" src="ideel/test_ont-only/test_polished_ideel.png">
 
 ## Nanopore-only w/ decontamination of ONT spike-in control
 ```bash
