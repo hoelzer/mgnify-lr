@@ -10,14 +10,14 @@ Email: hoelzer.martin@gmail.com
 
 # Workflow
 
-## Nanopore-only
-![chart](figures/chart_ont.png)
-
-## Hybrid
-![chart](figures/chart_hybrid.png)
-
-## Nanopore-only with decontamination
+## Nanopore-only w/ decontamination
 ![chart](figures/chart_ont_clean.png)
+
+## Hybrid w/ metaSPAdes and decontamination
+![chart](figures/chart_hybrid_spades_clean.png)
+
+## Hybrid w/ flye and decontamination
+![chart](figures/chart_hybrid_flye_clean.png)
 
 # Input examples
 
