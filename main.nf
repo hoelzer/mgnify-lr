@@ -105,6 +105,7 @@ include medaka from './modules/medaka'
 include pilon from './modules/pilon' 
 
 // decontamination
+include bbduk from './modules/bbduk' 
 include minimap2_index_ont from './modules/minimap2' 
 include minimap2_index_ill from './modules/minimap2' 
 include minimap2_index_fna from './modules/minimap2' 
@@ -187,7 +188,10 @@ workflow hybrid_assembly_wf {
         clean_ont(nano_input_ch, index_ont)
         nano_input_ch = clean_ont.out[0]
       }
-      if (index_ill) {
+      if (index_ill && params.bbduk) {
+        bbduk(illumina_input_ch, index_ill)
+        illumina_input_ch = bbduk.out[0]
+      } else {
         clean_ill(illumina_input_ch, index_ill)
         illumina_input_ch = clean_ill.out[0]
       }
@@ -302,6 +306,7 @@ workflow index_wf {
 
 workflow {
 
+      bbduk = false
       index_ont = false
       index_fna = false
       index_ill = false
@@ -310,6 +315,7 @@ workflow {
       if (params.index_ont) { index_ont = file(params.index_ont, checkIfExists: true) }
       if (params.index_fna) { index_fna = file(params.index_fna, checkIfExists: true) }
       if (params.index_ill) { index_ill = file(params.index_ill, checkIfExists: true) }
+      if (params.bbduk) { index_ill = file(params.bbduk, checkIfExists: true) }
 
       // 2) build indices if just a fasta is provided
       // WIP
@@ -403,6 +409,7 @@ def helpMSG() {
     You have three options to provide references for decontamination:
 
     1) Provide prepared minimap2 indices...
+    --bbduk         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.bbduk]
     --index_ont     minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.index_ont]
     --index_fna     minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.index_fna]
     --index_ill     minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.index_ill]

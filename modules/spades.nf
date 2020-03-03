@@ -15,7 +15,7 @@ process spades {
     script:
         """
         MEM=\$(echo ${task.memory} | sed 's/ GB//g')
-        spades.py --only-assembler -1 ${illumina[0]} -2 ${illumina[1]} --meta --nanopore ${ont} -o spades_output -t ${task.cpus} -m \${MEM}
+        spades.py --only-assembler -1 ${illumina[0]} -2 ${illumina[1]} --nanopore ${ont} --meta -o spades_output -t ${task.cpus} -m \${MEM}
         mv spades_output/contigs.fasta  ${name}_raw_assembly.fasta
         """
 }
