@@ -88,23 +88,44 @@ nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile loc
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile local,docker -resume --output results/test_ont-only-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/DCS_FNA.mmi
 ```
+<p>
+    <img width="320px" src="ideel/test_ont-only-clean/test_raw_assembly_clean_ideel.png">
+    <img width="320px" src="ideel/test_ont-only-clean/test_polished_clean_ideel.png">
+</p>
 
 ## Hybrid using SPAdes 
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-spades 
 ```
+<p>
+    <img width="320px" src="ideel/test_hybrid-spades/test_raw_assembly_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-spades/test_pilon_polished_ideel.png">
+</p>
 
 ## Hybrid using SPAdes w/ decontamination of ONT and Illumina spike-in controls
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-spades-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/NC_001422_DCS.mmi --bbduk clean/NC_001422.fna.gz 
 ```
+<p>
+    <img width="320px" src="ideel/test_hybrid-spades-clean/test_raw_assembly_clean_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-spades-clean/test_pilon_polished_clean_ideel.png">
+</p>
 
 ## Hybrid using Flye 
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-flye --assemblerHybrid flye
 ```
+<p>
+    <img width="320px" src="ideel/test_hybrid-flye/test_raw_assembly_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-flye/test_polished_ideel.png">
+</p>
+
 
 ## Hybrid using Flye w/ decontamination of ONT and Illumina spike-in controls
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-flye-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/NC_001422_DCS.mmi --bbduk clean/NC_001422.fna.gz --assemblerHybrid flye
 ```
+<p>
+    <img width="320px" src="ideel/test_hybrid-flye-clean/test_raw_assembly_clean_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-flye/test_pilon_polished_clean_ideel.png">
+</p>
