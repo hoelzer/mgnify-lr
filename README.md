@@ -117,7 +117,7 @@ nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.cs
 ```
 <p>
     <img width="320px" src="ideel/test_hybrid-flye/test_raw_assembly_ideel.png">
-    <img width="320px" src="ideel/test_hybrid-flye/test_polished_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-flye/test_pilon_polished_ideel.png">
 </p>
 
 
@@ -127,5 +127,5 @@ nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.cs
 ```
 <p>
     <img width="320px" src="ideel/test_hybrid-flye-clean/test_raw_assembly_clean_ideel.png">
-    <img width="320px" src="ideel/test_hybrid-flye/test_pilon_polished_clean_ideel.png">
+    <img width="320px" src="ideel/test_hybrid-flye-clean/test_pilon_polished_clean_ideel.png">
 </p>
