@@ -72,19 +72,15 @@ If you want to run on a HPC w/ LSF and Singularity use:
 
 # Execution examples of possible input and decontamination combinations
 
+Below are execution examples for the test data in this repository. For each command ideel plots show the difference between the raw and polished assembly. Please keep in mind that this is only a small toy sample.
+
 ## Nanopore-only 
 ```bash
 nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile local,docker --output results/test_ont-only
 ```
 <p>
-<figure>
-<img width="320px" src="ideel/test_ont-only/test_raw_assembly_ideel.png">
-<figcaption>Fig.1 - Trulli, Puglia, Italy.</figcaption>
-</figure>
-<figure>
-<img width="320px" src="ideel/test_ont-only/test_polished_ideel.png">
-<figcaption>Fig.1 - Trulli, Puglia, Italy.</figcaption>
-</figure>
+    <img width="320px" src="ideel/test_ont-only/test_raw_assembly_ideel.png">
+    <img width="320px" src="ideel/test_ont-only/test_polished_ideel.png">
 </p>
 
 
