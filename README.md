@@ -70,3 +70,34 @@ If you want to run on a HPC w/ LSF and Singularity use:
 # In that case you should also adjust --cachedir, --workdir, --databases to match your HPC environment
 ```
 
+# Execution examples of possible input and decontamination combinations
+
+## Nanopore-only 
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile local,docker --output results/test_ont-only
+```
+
+## Nanopore-only w/ decontamination of ONT spike-in control
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --workdir work -profile local,docker -resume --output results/test_ont-only-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/DCS_FNA.mmi
+```
+
+## Hybrid using SPAdes 
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-spades 
+```
+
+## Hybrid using SPAdes w/ decontamination of ONT and Illumina spike-in controls
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-spades-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/NC_001422_DCS.mmi --bbduk clean/NC_001422.fna.gz 
+```
+
+## Hybrid using Flye 
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-flye --assemblerHybrid flye
+```
+
+## Hybrid using Flye w/ decontamination of ONT and Illumina spike-in controls
+```bash
+nextflow run main.nf --list --nano test_data/ont.csv --illumina test_data/ill.csv --workdir work -profile local,docker -resume --output results/test_hybrid-flye-clean --index_ont clean/ont/DCS.mmi --index_fna clean/assembly/NC_001422_DCS.mmi --bbduk clean/NC_001422.fna.gz --assemblerHybrid flye
+```

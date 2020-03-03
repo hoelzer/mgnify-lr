@@ -192,8 +192,10 @@ workflow hybrid_assembly_wf {
         bbduk(illumina_input_ch, index_ill)
         illumina_input_ch = bbduk.out[0]
       } else {
-        clean_ill(illumina_input_ch, index_ill)
-        illumina_input_ch = clean_ill.out[0]
+        if (index_ill) {
+          clean_ill(illumina_input_ch, index_ill)
+          illumina_input_ch = clean_ill.out[0]
+        }
       }
 
       assemblerUnpolished = false
