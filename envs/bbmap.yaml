@@ -1,6 +1,6 @@
-name: flye
+name: bbmap
 channels:
   - bioconda
   - conda-forge
 dependencies:
-  - flye=2.7
+  - bbmap=38.79
