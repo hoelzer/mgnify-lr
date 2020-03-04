@@ -20,7 +20,7 @@ process pilon {
         bwa index ${assembly}
         bwa mem ${assembly} ${read[0]} ${read[1]} -o ${name}.1.sam
         samtools view -bS ${name}.1.sam -o ${name}.1.bam
-        samtools sort -@ ${task.cpus} -o ${name}.sorted.1.bam ${name}.1.bam
+        samtools sort -@ ${task.cpus} ${name}.1.bam -o ${name}.sorted.1.bam
         samtools index -@ ${task.cpus} ${name}.sorted.1.bam
         rm *.sam ${name}.1.bam
         
@@ -29,7 +29,7 @@ process pilon {
         bwa index round2.fasta
         bwa mem round2.fasta ${read[0]} ${read[1]} -o ${name}.2.sam
         samtools view -bS ${name}.2.sam -o ${name}.2.bam
-        samtools sort -@ ${task.cpus} -o ${name}.sorted.2.bam ${name}.2.bam
+        samtools sort -@ ${task.cpus} ${name}.2.bam -o ${name}.sorted.2.bam
         samtools index -@ ${task.cpus} ${name}.sorted.2.bam
         rm *.sam ${name}.2.bam
                 
