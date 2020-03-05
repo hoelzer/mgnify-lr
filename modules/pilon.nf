@@ -6,7 +6,7 @@ process pilon {
     cpus { 24 }
     memory { 80.GB * task.attempt }
     clusterOptions { '-P bigmem' }
-    maxRetries 3
+    maxRetries 5
       
       input:
         tuple val(name), file(assembly)
