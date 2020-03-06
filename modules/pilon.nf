@@ -4,9 +4,9 @@ process pilon {
 
     errorStrategy { 'retry' }
     cpus { 24 }
-    memory { 80.GB * task.attempt }
+    memory { 360.GB * task.attempt }
     clusterOptions { '-P bigmem' }
-    maxRetries 5
+    maxRetries 2
       
       input:
         tuple val(name), file(assembly)

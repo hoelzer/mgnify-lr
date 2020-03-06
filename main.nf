@@ -405,7 +405,7 @@ def helpMSG() {
     --output            name of the result folder [default: $params.output]
 
     ${c_yellow}Custom databases:${c_reset}
-     --dia_db      input for diamond database e.g.: 'databases/database_uniprot.dmnd
+     --dia_db             input for diamond database e.g.: 'databases/database_uniprot.dmnd
 
     ${c_yellow}Decontamination:${c_reset}
     You have three options to provide references for decontamination:
