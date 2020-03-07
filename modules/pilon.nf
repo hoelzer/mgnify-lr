@@ -6,7 +6,7 @@ process pilon {
     cpus { 24 }
     memory { 360.GB * task.attempt }
     clusterOptions { '-P bigmem' }
-    maxRetries 2
+    maxRetries 3
       
       input:
         tuple val(name), file(assembly)
@@ -15,7 +15,12 @@ process pilon {
   	    tuple val(name), file("${name}_pilon_polished.fasta") 
       script:
         """
-        MEM=\$(echo ${task.memory} | sed 's/ GB//g')
+        VALUE=\$(echo ${task.memory} | awk '{print \$2}')
+        if [[ \$VALUE == "GB" ]]; then
+          MEM=\$(echo ${task.memory} | sed 's/ GB//g')g
+        else
+          MEM=\$(echo ${task.memory} | sed 's/ TB//g')t
+        fi
 
         bwa index ${assembly}
         bwa mem ${assembly} ${read[0]} ${read[1]} -o ${name}.1.sam
@@ -24,7 +29,7 @@ process pilon {
         samtools index -@ ${task.cpus} ${name}.sorted.1.bam
         rm *.sam ${name}.1.bam
         
-        pilon -Xmx\${MEM}g --threads ${task.cpus} --genome ${assembly} --frags ${name}.sorted.1.bam --output round2
+        pilon -Xmx\${MEM} --threads ${task.cpus} --genome ${assembly} --frags ${name}.sorted.1.bam --output round2
 
         bwa index round2.fasta
         bwa mem round2.fasta ${read[0]} ${read[1]} -o ${name}.2.sam
@@ -33,6 +38,11 @@ process pilon {
         samtools index -@ ${task.cpus} ${name}.sorted.2.bam
         rm *.sam ${name}.2.bam
                 
-        pilon -Xmx\${MEM}g --threads ${task.cpus} --genome round2.fasta --frags ${name}.sorted.2.bam --output ${name}_pilon_polished
+        pilon -Xmx\${MEM} --threads ${task.cpus} --genome round2.fasta --frags ${name}.sorted.2.bam --output ${name}_pilon_polished
       	"""
 }
+
+/*
+MEM=$(echo 1.1 TB | sed 's/ GB//g')
+MEM=$(echo 720 GB | sed 's/ GB//g')
+*/
