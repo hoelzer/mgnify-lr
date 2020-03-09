@@ -114,9 +114,10 @@ fi
 if [ ! -e $BASM.sort.success ];then
 log "Sorting and indexing alignment file"
 rm -f $BASM.vc.success
-$SAMTOOLS view -bS $BASM.unSorted.sam -o $BASM.unSorted.bam 2>>samtools.err && $SAMTOOLS sort -m $MEM -@ $NUM_THREADS $BASM.unSorted.bam $BASM.alignSorted 2>>samtools.err && \
-$SAMTOOLS index $BASM.alignSorted.bam 2>>samtools.err && \
-$SAMTOOLS faidx $ASM  2>>samtools.err && \
+$SAMTOOLS view -bS $BASM.unSorted.sam -o $BASM.unSorted.bam 2>>samtools.err 
+$SAMTOOLS sort -m $MEM -@ $NUM_THREADS $BASM.unSorted.bam $BASM.alignSorted 2>>samtools.err
+$SAMTOOLS index $BASM.alignSorted.bam 2>>samtools.err
+$SAMTOOLS faidx $ASM  2>>samtools.err
 touch  $BASM.sort.success
 if [ ! -e $BASM.sort.success ];then
   error_exit "Sorting and indexing alignment file failed"
