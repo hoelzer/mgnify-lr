@@ -257,43 +257,36 @@ workflow clean_assembly_wf {
         clean_assembly.out[0]
 }
 
+/**********************************************************************/
+/* SR polishing Workflow 
+/**********************************************************************/
+workflow sr_polishing_wf {
+  take:  assembly_input_ch
+         illumina_input_ch
+  main:
+        pilon(assembly_input_ch, illumina_input_ch)
+  emit:   
+        pilon.out
+}
+
 
 /**********************************************************************/
-/* Hybrid Assembly Workflow 
+/* SPAdes Hybrid Assembly Workflow 
 /**********************************************************************/
 workflow hybrid_assembly_wf {
   take:  nano_input_ch
          illumina_input_ch
-         index_fna
 
   main:
 
-      assemblerUnpolished = false
       if (params.assemblerHybrid == 'spades') {
         spades(nano_input_ch.join(illumina_input_ch))
-        assemblerUnpolished = spades.out[0]
+        assemblyUnpolished= spades.out[0]
         graphOutput = spades.out[1]
-        pilon(assemblerUnpolished, illumina_input_ch)
-        assemblerOutput = pilon.out
-      }
-      if (params.assemblerHybrid == 'flye') {
-        estimate_gsize(nano_input_ch)
-        flye(nano_input_ch.join(estimate_gsize.out))
-        assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
-        medaka(racon(minimap2_to_polish(flye.out[0])))
-        pilon(medaka.out, illumina_input_ch)
-        assemblerOutput = pilon.out
-      }
-
-      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
-
-      if (index_fna) {
-        clean_assembly(assemblerOutput, index_fna)
-        assemblerOutput = clean_assembly.out[0]
       }
 
   emit:   
-        assemblerOutput
+        assemblyUnpolished
 }
 
 
@@ -375,33 +368,53 @@ workflow {
         illumina_preprocess_wf(illumina_input_ch, index_ill)
       }
 
-      // ONT assembly
-      if (params.nano && !params.illumina || params.sra ) { 
+      // ONT-only or Flye-based hybrid assembly
+      if (params.assemblerHybrid == 'flye') { 
+        // assembly w/ flye
         nanopore_assembly_wf(nanopore_preprocess_wf.out)
-
         assemblyRaw = nanopore_assembly_wf.out[0]
         assemblyRacon = nanopore_assembly_wf.out[1]
-        assemblyMedaka = nanopore_assembly_wf.out[2] 
-        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyMedaka)
+        assemblyPolished = nanopore_assembly_wf.out[2]
 
+        // combine for analysis step 
+        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyPolished)
+
+        // short-read polishing
+        if (params.illumina) {
+          sr_polishing_wf(assemblyPolished, illumina_input_ch)
+          assemblies = assemblies.concat(assemblyPolished)
+        }
+
+        // clean assembly
         if (index_fna) { 
-          clean_assembly_wf(assemblyMedaka, index_fna)
+          clean_assembly_wf(assemblyPolished, index_fna)
           assemblies = assemblies.concat(clean_assembly_wf.out)
         }
 
+        // ENA submission
         if (params.study || params.sample || params.run) {
-          ena_manifest(assemblyMedaka, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
-          ena_project_xml(assemblyMedaka, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
+          ena_manifest(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
+          ena_project_xml(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
         }
       }
 
-      // HYBRID
-      if (params.nano && params.illumina ) { 
-        hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out, index_fna)
-        assembly = hybrid_assembly_wf.out
+      // Hybrid SPAdes
+      if (params.assemblerHybrid == 'spades') { 
+        // assembly w/ spades
+        hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
+        assemblyRaw = hybrid_assembly_wf.out
+
+        // polish
+        sr_polishing_wf(assemblyRaw, illumina_input_ch)
+        assemblyPolished = sr_polishing_wf.out
+
+        // combine for analysis step 
+        assemblies = assemblyRaw.concat(assemblyPolished)
+
+        // ENA submission
         if (params.study || params.sample || params.run) {
-          ena_manifest_hybrid(assembly)
-          ena_project_xml_hybrid(assembly)
+          ena_manifest_hybrid(assemblyPolished)
+          ena_project_xml_hybrid(assemblyPolished)
         }
       }
 
