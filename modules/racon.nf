@@ -10,9 +10,9 @@ process racon {
    input:
       tuple val(name), file(read), file(assembly), file(mapping) 
    output:
-   	tuple val(name), file(read), file("${name}_consensus.fasta") 
+   	tuple val(name), file(read), file("${name}_racon.fasta") 
    shell:
       """
-      racon -t ${task.cpus} ${read} ${mapping} ${assembly} > ${name}_consensus.fasta
+      racon -t ${task.cpus} ${read} ${mapping} ${assembly} > ${name}_racon.fasta
       """
   }
