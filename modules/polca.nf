@@ -4,7 +4,7 @@ process polca {
 
     /*errorStrategy { 'retry' }
     cpus { 24 }
-    memory { 36 * task.attempt }
+    memory { 36.GB * task.attempt }
     clusterOptions { '-P bigmem' }
     maxRetries 3*/
 
@@ -16,7 +16,8 @@ process polca {
 
   script:
     """
-    polca.sh -a ${assembly} -r '${shortRead}' -t ${task.cpus} -m ${task.memory}G
+    MEM=\$(echo ${task.memory} | awk '{print \$2}' | sed 's/ GB//g')
+    polca.sh -a ${assembly} -r '${shortRead}' -t ${task.cpus} -m \${MEM}G
     mv *.PolcaCorrected.fa ${name}_polca.fasta
     """
   }
