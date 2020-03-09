@@ -17,7 +17,23 @@ process polca {
   script:
     """
     MEM=\$(echo ${task.memory} | awk '{print \$2}' | sed 's/ GB//g')
-    polca.sh -a ${assembly} -r '${shortRead}' -t ${task.cpus} -m \${MEM}G
+
+    # replace the samtools part in the shell script
+    #SCRIPT=\$(which polca.sh)
+    #cp \$SCRIPT polca_refine.sh
+    #OLD="\$SAMTOOLS sort -m \$MEM -@ \$NUM_THREADS <(samtools view -uhS \$BASM.unSorted.sam) \$BASM.alignSorted 2>>samtools.err && \\"
+    #NEW="\$SAMTOOLS view -bS \$BASM.unSorted.sam -o \$BASM.unSorted.bam 2>>samtools.err && \$SAMTOOLS sort -m \$MEM -@ \$NUM_THREADS \$BASM.unSorted.bam \$BASM.alignSorted 2>>samtools.err && \\"
+
+    polca_refine.sh -a ${assembly} -r '${shortRead}' -t ${task.cpus} -m \${MEM}G
     mv *.PolcaCorrected.fa ${name}_polca.fasta
     """
   }
+
+
+
+  /*
+  REPLACE
+$SAMTOOLS sort -m $MEM -@ $NUM_THREADS <(samtools view -uhS $BASM.unSorted.sam) $BASM.alignSorted 2>>samtools.err && \
+  WITH
+$SAMTOOLS view -bS $BASM.unSorted.sam -o $BASM.unSorted.bam 2>>samtools.err && $SAMTOOLS sort -m $MEM -@ $NUM_THREADS $BASM.unSorted.bam $BASM.alignSorted 2>>samtools.err && \
+  */
