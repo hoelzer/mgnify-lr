@@ -165,108 +165,128 @@ workflow download_diamond {
 **************************/
 
 /**********************************************************************/
-/* Hybrid Assembly Workflow 
+/* Nanopore Preprocessing Workflow 
 /**********************************************************************/
-workflow hybrid_assembly_wf {
+workflow nanopore_preprocess_wf {
   take:  nano_input_ch
-         illumina_input_ch
          index_ont
-         index_fna
-         index_ill
 
   main:
       // trimming and QC of reads
         nanoplot(nano_input_ch)
         removeSmallReads(nano_input_ch)
-        nano_input_ch = removeSmallReads.out
+        nano_output_ch = removeSmallReads.out
 
-        fastp(illumina_input_ch)
-        illumina_input_ch = fastp.out[0]
-
-      // decontaminate reads if a host genome is provided 
+      // decontaminate reads if a host genome is provided
       if (index_ont) {
-        clean_ont(nano_input_ch, index_ont)
-        nano_input_ch = clean_ont.out[0]
-      }
-      if (index_ill && params.bbduk) {
-        bbduk(illumina_input_ch, index_ill)
-        illumina_input_ch = bbduk.out[0]
-      } else {
-        if (index_ill) {
-          clean_ill(illumina_input_ch, index_ill)
-          illumina_input_ch = clean_ill.out[0]
-        }
-      }
-
-      assemblerUnpolished = false
-      if (params.assemblerHybrid == 'spades') {
-        spades(nano_input_ch.join(illumina_input_ch))
-        assemblerUnpolished = spades.out[0]
-        graphOutput = spades.out[1]
-        pilon(assemblerUnpolished, illumina_input_ch)
-        assemblerOutput = pilon.out
-      }
-      if (params.assemblerHybrid == 'flye') {
-        estimate_gsize(nano_input_ch)
-        flye(nano_input_ch.join(estimate_gsize.out))
-        assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
-        medaka(racon(minimap2_to_polish(flye.out[0])))
-        pilon(medaka.out, illumina_input_ch)
-        assemblerOutput = pilon.out
-      }
-
-      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
-
-      if (index_fna) {
-        clean_assembly(assemblerOutput, index_fna)
-        assemblerOutput = clean_assembly.out[0]
+        clean_ont(nano_output_ch, index_ont)
+        nano_output_ch = clean_ont.out[0]
       }
 
   emit:   
-        assemblerOutput
+      nano_output_ch
 }
 
+/**********************************************************************/
+/* Illumina Preprocessing Workflow 
+/**********************************************************************/
+workflow illumina_preprocess_wf {
+  take:  illumina_input_ch
+         index_ill
+
+  main:
+      // trimming and QC of reads
+        fastp(illumina_input_ch)
+        illumina_output_ch = fastp.out[0]
+
+      if (index_ill && params.bbduk) {
+        bbduk(illumina_output_ch, index_ill)
+        illumina_output_ch = bbduk.out[0]
+      } else {
+        if (index_ill) {
+          clean_ill(illumina_output_ch, index_ill)
+          illumina_output_ch = clean_ill.out[0]
+        }
+      }
+
+  emit:   
+        illumina_output_ch
+}
 
 /**********************************************************************/
 /* Nanopore-only Assembly Workflow 
 /**********************************************************************/
 workflow nanopore_assembly_wf {
   take:  nano_input_ch
-         index_ont
+
+  main:
+        if (params.assemblerLong == 'flye') { 
+          // size estimation for flye 
+          estimate_gsize(nano_input_ch) 
+          // assembly raw
+          flye(nano_input_ch.join(estimate_gsize.out))
+          // polish
+          medaka(racon(minimap2_to_polish(flye.out[0])))
+          // collect assembly outputs
+          assemblyUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+          assemblyRacon = racon.out.map {name, reads, assembly -> [name, assembly]}
+          assemblyMedaka = medaka.out
+        }
+
+      //assemblies = assemblyUnpolished.concat(assemblyRacon).concat(assemblyMedaka)
+
+  emit:   
+        assemblyUnpolished
+        assemblyRacon
+        assemblyMedaka
+        flye.out[1] // the flye.log
+        estimate_gsize.out
+}
+
+/**********************************************************************/
+/* Clean Assembly Workflow 
+/**********************************************************************/
+workflow clean_assembly_wf {
+  take:  assembly_input_ch
          index_fna
 
   main:
-      // trimming and QC of reads
-        nanoplot(nano_input_ch)
-        removeSmallReads(nano_input_ch)
-        nano_input_ch = removeSmallReads.out
+        clean_assembly(assembly_input_ch, index_fna)
 
-      // decontaminate reads if a host genome is provided
-      if (index_ont) {
-        clean_ont(nano_input_ch, index_ont)
-        nano_input_ch = clean_ont.out[0]
-      }
+  emit:   
+        clean_assembly.out[0]
+}
 
-      // size estimation for flye 
-        if (params.assemblerLong == 'flye') { 
-          estimate_gsize(nano_input_ch) 
-          flye(nano_input_ch.join(estimate_gsize.out))
-          assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
-          medaka(racon(minimap2_to_polish(flye.out[0])))
-          assemblerOutput = medaka.out 
-        }
+/**********************************************************************/
+/* SR polishing Workflow 
+/**********************************************************************/
+workflow illumina_polishing_wf {
+  take:  assembly_input_ch
+         illumina_input_ch
+  main:
+        pilon(assembly_input_ch, illumina_input_ch)
+  emit:   
+        pilon.out
+}
 
-      assemblerOutput = assemblerOutput.concat(assemblerUnpolished)
 
-      if (index_fna) {
-        clean_assembly(assemblerOutput, index_fna)
-        assemblerOutput = clean_assembly.out[0]
+/**********************************************************************/
+/* SPAdes Hybrid Assembly Workflow 
+/**********************************************************************/
+workflow hybrid_assembly_wf {
+  take:  nano_input_ch
+         illumina_input_ch
+
+  main:
+
+      if (params.assemblerHybrid == 'spades') {
+        spades(nano_input_ch.join(illumina_input_ch))
+        assemblyUnpolished= spades.out[0]
+        graphOutput = spades.out[1]
       }
 
   emit:   
-        assemblerOutput
-        flye.out[1] // the flye.log
-        estimate_gsize.out
+        assemblyUnpolished
 }
 
 
@@ -340,32 +360,69 @@ workflow {
         index_ill = index_wf.out[2]
       }
       
-      // assembly workflows
-      // ONT
-      if (params.nano && !params.illumina || params.sra ) { 
-        nanopore_assembly_wf(nano_input_ch, index_ont, index_fna)
-        assembly = nanopore_assembly_wf.out[0]
+      // ONT preprocess
+      nanopore_preprocess_wf(nano_input_ch, index_ont)
+
+      // ILL preprocess
+      if (params.illumina ) { 
+        illumina_preprocess_wf(illumina_input_ch, index_ill)
+      }
+
+      // Flye-based assembly w/ optional short-read polishing
+      if (!params.illumina || params.assemblerHybrid != 'spades') { 
+        // assembly w/ flye
+        nanopore_assembly_wf(nanopore_preprocess_wf.out)
+        assemblyRaw = nanopore_assembly_wf.out[0]
+        assemblyRacon = nanopore_assembly_wf.out[1]
+        assemblyPolished = nanopore_assembly_wf.out[2]
+
+        // combine for analysis step 
+        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyPolished)
+
+        // short-read polishing
+        if (params.illumina) {
+          illumina_polishing_wf(assemblyPolished, illumina_input_ch)
+          assemblyPolished = illumina_polishing_wf.out
+          assemblies = assemblies.concat(assemblyPolished)
+        }
+
+        // clean assembly
+        if (index_fna) { 
+          clean_assembly_wf(assemblyPolished, index_fna)
+          assemblies = assemblies.concat(clean_assembly_wf.out)
+        }
+
+        // ENA submission
         if (params.study || params.sample || params.run) {
-          ena_manifest(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
-          ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1], nanopore_assembly_wf.out[2])
+          ena_manifest(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
+          ena_project_xml(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
         }
       }
 
-      // HYBRID
-      if (params.nano && params.illumina ) { 
-        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, index_ont, index_fna, index_ill)
-        assembly = hybrid_assembly_wf.out
+      // Hybrid SPAdes
+      if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
+        // assembly w/ spades
+        hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
+        assemblyRaw = hybrid_assembly_wf.out
+
+        // polish
+        illumina_polishing_wf(assemblyRaw, illumina_input_ch)
+        assemblyPolished = illumina_polishing_wf.out
+
+        // combine for analysis step 
+        assemblies = assemblyRaw.concat(assemblyPolished)
+
+        // ENA submission
         if (params.study || params.sample || params.run) {
-          ena_manifest_hybrid(assembly)
-          ena_project_xml_hybrid(assembly)
+          ena_manifest_hybrid(assemblyPolished)
+          ena_project_xml_hybrid(assemblyPolished)
         }
       }
 
       // analysis workflow
       if (params.dia_db) { database_diamond = file(params.dia_db) } 
       else { download_diamond(); database_diamond = download_diamond.out }
-      analysis_wf(assembly, database_diamond)
-
+      analysis_wf(assemblies, database_diamond)
 
 }
 
