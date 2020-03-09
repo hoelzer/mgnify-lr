@@ -260,7 +260,7 @@ workflow clean_assembly_wf {
 /**********************************************************************/
 /* SR polishing Workflow 
 /**********************************************************************/
-workflow sr_polishing_wf {
+workflow illumina_polishing_wf {
   take:  assembly_input_ch
          illumina_input_ch
   main:
