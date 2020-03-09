@@ -381,7 +381,8 @@ workflow {
 
         // short-read polishing
         if (params.illumina) {
-          sr_polishing_wf(assemblyPolished, illumina_input_ch)
+          illumina_polishing_wf(assemblyPolished, illumina_input_ch)
+          assemblyPolished = illumina_polishing_wf.out
           assemblies = assemblies.concat(assemblyPolished)
         }
 
@@ -405,8 +406,8 @@ workflow {
         assemblyRaw = hybrid_assembly_wf.out
 
         // polish
-        sr_polishing_wf(assemblyRaw, illumina_input_ch)
-        assemblyPolished = sr_polishing_wf.out
+        illumina_polishing_wf(assemblyRaw, illumina_input_ch)
+        assemblyPolished = illumina_polishing_wf.out
 
         // combine for analysis step 
         assemblies = assemblyRaw.concat(assemblyPolished)
