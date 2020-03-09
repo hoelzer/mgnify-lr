@@ -265,10 +265,10 @@ workflow illumina_polishing_wf {
   take:  assembly_input_ch
          illumina_input_ch
   main:
-        if (params.srPolish == 'pilon') { pilon(assembly_input_ch, illumina_input_ch) }
-        if (params.srPolish == 'polca') { polca(assembly_input_ch.join(illumina_input_ch)) }
+        if (params.srPolish == 'pilon') { pilon(assembly_input_ch, illumina_input_ch); assemblyPolished = pilon.out }
+        if (params.srPolish == 'polca') { polca(assembly_input_ch.join(illumina_input_ch)); assemblyPolished = polca.out }
   emit:   
-        pilon.out
+        assemblyPolished
 }
 
 
