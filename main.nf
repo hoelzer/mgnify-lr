@@ -368,7 +368,7 @@ workflow {
         illumina_preprocess_wf(illumina_input_ch, index_ill)
       }
 
-      // ONT-only or Flye-based hybrid assembly
+      // Flye-based assembly w/ optional short-read polishing
       if (!params.illumina || params.assemblerHybrid != 'spades') { 
         // assembly w/ flye
         nanopore_assembly_wf(nanopore_preprocess_wf.out)
@@ -419,9 +419,9 @@ workflow {
       }
 
       // analysis workflow
-      //if (params.dia_db) { database_diamond = file(params.dia_db) } 
-      //else { download_diamond(); database_diamond = download_diamond.out }
-      //analysis_wf(assemblies, database_diamond)
+      if (params.dia_db) { database_diamond = file(params.dia_db) } 
+      else { download_diamond(); database_diamond = download_diamond.out }
+      analysis_wf(assemblies, database_diamond)
 
 }
 
