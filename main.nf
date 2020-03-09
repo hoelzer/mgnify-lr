@@ -399,7 +399,7 @@ workflow {
       }
 
       // Hybrid SPAdes
-      if (prams.nano && params.illumina && params.assemblerHybrid == 'spades') { 
+      if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
         // assembly w/ spades
         hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
         assemblyRaw = hybrid_assembly_wf.out
