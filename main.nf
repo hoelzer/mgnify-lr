@@ -369,7 +369,7 @@ workflow {
       }
 
       // ONT-only or Flye-based hybrid assembly
-      if (params.assemblerHybrid == 'flye') { 
+      if (!params.illumina || params.assemblerHybrid != 'spades') { 
         // assembly w/ flye
         nanopore_assembly_wf(nanopore_preprocess_wf.out)
         assemblyRaw = nanopore_assembly_wf.out[0]
