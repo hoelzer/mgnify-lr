@@ -103,6 +103,7 @@ include minimap2_to_polish from './modules/minimap2'
 include racon from './modules/racon'
 include medaka from './modules/medaka' 
 include pilon from './modules/pilon' 
+include polca from './modules/polca'
 
 // decontamination
 include bbduk from './modules/bbduk' 
@@ -264,7 +265,8 @@ workflow illumina_polishing_wf {
   take:  assembly_input_ch
          illumina_input_ch
   main:
-        pilon(assembly_input_ch, illumina_input_ch)
+        if (params.srPolish == 'pilon') { pilon(assembly_input_ch, illumina_input_ch) }
+        if (params.srPolish == 'polca') { polca(assembly_input_ch.join(illumina_input_ch)) }
   emit:   
         pilon.out
 }
@@ -459,6 +461,7 @@ def helpMSG() {
     --length            cutoff for ONT read length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades, flye default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
+    --srPolish          polisher used for short reads [polca, pilon: $params.srPolish]
     --output            name of the result folder [default: $params.output]
 
     ${c_yellow}Custom databases:${c_reset}

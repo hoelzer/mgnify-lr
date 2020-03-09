@@ -1,0 +1,7 @@
+name: masurca
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - masurca=3.3.7
+  - bwa=0.7.17

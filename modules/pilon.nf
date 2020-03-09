@@ -11,8 +11,10 @@ process pilon {
       input:
         tuple val(name), file(assembly)
         tuple val(read_name), file(read) 
+
       output:
   	    tuple val(name), file("${name}_pilon_polished.fasta") 
+      
       script:
         """
         VALUE=\$(echo ${task.memory} | awk '{print \$2}')
