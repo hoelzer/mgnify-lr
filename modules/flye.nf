@@ -19,7 +19,7 @@ process flye {
     shell:
     """
     size=\$(cat !{genome_size})
-    flye --nano-corr !{ont} -o flye_output -t !{task.cpus} --plasmids --meta --genome-size \$size
+    flye --nano-raw !{ont} -o flye_output -t !{task.cpus} --plasmids --meta --genome-size \$size
     mv flye_output/assembly.fasta ${name}_raw_assembly.fasta
     mv flye_output/flye.log flye.log
     """
