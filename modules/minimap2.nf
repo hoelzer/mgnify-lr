@@ -34,7 +34,7 @@ process minimap2_index_ill {
       """
 }
 
-process minimap2_index_fna {
+process minimap2_index_assembly {
   label 'minimap2'
   if (params.cloudProcess) { 
       publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
@@ -52,7 +52,6 @@ process minimap2_index_fna {
       """
 }
 
-
 process minimap2_to_polish {
   label 'minimap2'
     input:
@@ -65,7 +64,7 @@ process minimap2_to_polish {
       """
 }
 
-process minimap2_to_decontaminate_fastq {
+process minimap2_clean_ont {
   label 'minimap2'
   publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "${name}.*.fastq.gz"  
 
@@ -98,8 +97,7 @@ process minimap2_to_decontaminate_fastq {
     """
 }
 
-
-process minimap2_to_decontaminate_fasta {
+process minimap2_clean_assembly {
   label 'minimap2'
   publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fasta"  
 
@@ -135,8 +133,7 @@ process minimap2_to_decontaminate_fasta {
     """
 }
 
-
-process minimap2_to_decontaminate_ill {
+process minimap2_clean_ill {
   label 'minimap2'
   publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fastq.gz"  
 
