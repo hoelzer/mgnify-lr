@@ -43,6 +43,6 @@ process pilon {
 }
 
 /*
-MEM=$(echo 1.1 TB | sed 's/ GB//g')
+MEM=$(echo 1.1 TB | sed 's/ TB//g')
 MEM=$(echo 720 GB | sed 's/ GB//g')
 */
