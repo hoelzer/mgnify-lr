@@ -40,8 +40,8 @@ process estimate_gsize {
 
         cp genome_size.txt estimated_genome_size.txt
         size=\$(cat genome_size.txt)
-        if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 10 ]]; then
-            echo '10m' > genome_size.txt
+        if [ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') -lt 1 ]; then
+            echo '1m' > genome_size.txt
         fi
     fi
     """
@@ -55,8 +55,8 @@ process estimate_gsize {
 
         cp genome_size.txt estimated_genome_size.txt
         size=\$(cat genome_size.txt)
-        if [[ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') < 10 ]]; then
-            echo '10m' > genome_size.txt
+        if [ \$(echo \$size | awk 'BEGIN{FS="."}{print \$1}') -lt 1 ]; then
+            echo '1m' > genome_size.txt
         fi
     fi
     """
