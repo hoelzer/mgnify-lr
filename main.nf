@@ -108,10 +108,10 @@ include pilon from './modules/pilon'
 include bbduk from './modules/bbduk' 
 include minimap2_index_ont from './modules/minimap2' 
 include minimap2_index_ill from './modules/minimap2' 
-include minimap2_index_fna from './modules/minimap2' 
-include minimap2_to_decontaminate_fastq as clean_ont from './modules/minimap2' 
-include minimap2_to_decontaminate_fasta as clean_assembly from './modules/minimap2' 
-include minimap2_to_decontaminate_ill as clean_ill from './modules/minimap2' 
+include minimap2_index_assembly from './modules/minimap2' 
+include minimap2_clean_ont as clean_ont from './modules/minimap2' 
+include minimap2_clean_assembly as clean_assembly from './modules/minimap2' 
+include minimap2_clean_ill as clean_ill from './modules/minimap2' 
 
 // analysis
 include prodigal from './modules/prodigal'
@@ -169,7 +169,7 @@ workflow download_diamond {
 /**********************************************************************/
 workflow nanopore_preprocess_wf {
   take:  nano_input_ch
-         index_ont
+         clean_ont_ch
 
   main:
       // trimming and QC of reads
@@ -178,8 +178,8 @@ workflow nanopore_preprocess_wf {
         nano_output_ch = removeSmallReads.out
 
       // decontaminate reads if a host genome is provided
-      if (index_ont) {
-        clean_ont(nano_output_ch, index_ont)
+      if (clean_ont_ch) {
+        clean_ont(nano_output_ch, clean_ont_ch)
         nano_output_ch = clean_ont.out[0]
       }
 
@@ -192,19 +192,19 @@ workflow nanopore_preprocess_wf {
 /**********************************************************************/
 workflow illumina_preprocess_wf {
   take:  illumina_input_ch
-         index_ill
+         clean_ill_ch
 
   main:
       // trimming and QC of reads
         fastp(illumina_input_ch)
         illumina_output_ch = fastp.out[0]
 
-      if (index_ill && params.bbduk) {
-        bbduk(illumina_output_ch, index_ill)
+      if (clean_ill_ch && params.clean_ill) {
+        bbduk(illumina_output_ch, clean_ill_ch)
         illumina_output_ch = bbduk.out[0]
       } else {
-        if (index_ill) {
-          clean_ill(illumina_output_ch, index_ill)
+        if (clean_ill_ch) {
+          clean_ill(illumina_output_ch, clean_ill_ch)
           illumina_output_ch = clean_ill.out[0]
         }
       }
@@ -248,10 +248,10 @@ workflow nanopore_assembly_wf {
 /**********************************************************************/
 workflow clean_assembly_wf {
   take:  assembly_input_ch
-         index_fna
+         clean_assembly_ch
 
   main:
-        clean_assembly(assembly_input_ch, index_fna)
+        clean_assembly(assembly_input_ch, clean_assembly_ch)
 
   emit:   
         clean_assembly.out[0]
@@ -310,12 +310,12 @@ workflow index_wf {
 
   main:
     minimap2_index_ont(host)
-    minimap2_index_fna(host)
+    minimap2_index_assembly(host)
     minimap2_index_ill(host)
 
   emit:
     minimap2_index_ont.out
-    minimap2_index_fna.out
+    minimap2_index_assembly.out
     minimap2_index_ill.out
 }
 
@@ -328,24 +328,24 @@ workflow index_wf {
 
 workflow {
 
-      bbduk = false
-      index_ont = false
-      index_fna = false
-      index_ill = false
+      clean_ont_ch = false
+      clean_ill_ch = false // use bbduk per default
+      clean_assembly_ch = false
+      clean_ill_minimap_ch = false // sr clean w/ minimap
 
       // 1) check for user defined minimap2 indices 
-      if (params.index_ont) { index_ont = file(params.index_ont, checkIfExists: true) }
-      if (params.index_fna) { index_fna = file(params.index_fna, checkIfExists: true) }
-      if (params.index_ill) { index_ill = file(params.index_ill, checkIfExists: true) }
-      if (params.bbduk) { index_ill = file(params.bbduk, checkIfExists: true) }
+      if (params.clean_ont) { clean_ont_ch = file(params.clean_ont, checkIfExists: true) }
+      if (params.clean_assembly) { clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) }
+      if (params.clean_ill) { clean_ill_ch = file(params.clean_ill, checkIfExists: true) }
+      if (params.clean_ill_minimap) { clean_ill_ch = file(params.clean_ill_minimap, checkIfExists: true) }
 
       // 2) build indices if just a fasta is provided
       // WIP
       if (params.host) {
         index_wf(host_input_ch)
-        index_ont = index_wf.out[0]
-        index_fna = index_wf.out[1]
-        index_ill = index_wf.out[2]
+        clean_ont_ch = index_wf.out[0]
+        clean_assembly_ch = index_wf.out[1]
+        clean_ill_minimap_ch = index_wf.out[2]
       }
 
       // 3) download genome and build indices
@@ -355,17 +355,17 @@ workflow {
         genome = download_host_genome.out
         host_input_ch = Channel.of( [params.species, genome] )
         index_wf(host_input_ch)
-        index_ont = index_wf.out[0]
-        index_fna = index_wf.out[1]
-        index_ill = index_wf.out[2]
+        clean_ont_ch = index_wf.out[0]
+        clean_assembly_ch = index_wf.out[1]
+        clean_ill_minimap_ch = index_wf.out[2]
       }
       
       // ONT preprocess
-      nanopore_preprocess_wf(nano_input_ch, index_ont)
+      nanopore_preprocess_wf(nano_input_ch, clean_ont_ch)
 
       // ILL preprocess
       if (params.illumina ) { 
-        illumina_preprocess_wf(illumina_input_ch, index_ill)
+        illumina_preprocess_wf(illumina_input_ch, clean_ill_ch)
       }
 
       // Flye-based assembly w/ optional short-read polishing
@@ -374,49 +374,34 @@ workflow {
         nanopore_assembly_wf(nanopore_preprocess_wf.out)
         assemblyRaw = nanopore_assembly_wf.out[0]
         assemblyRacon = nanopore_assembly_wf.out[1]
-        assemblyPolished = nanopore_assembly_wf.out[2]
+        assemblyReady = nanopore_assembly_wf.out[2]
 
         // combine for analysis step 
-        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyPolished)
-
-        // short-read polishing
-        if (params.illumina) {
-          illumina_polishing_wf(assemblyPolished, illumina_input_ch)
-          assemblyPolished = illumina_polishing_wf.out
-          assemblies = assemblies.concat(assemblyPolished)
-        }
-
-        // clean assembly
-        if (index_fna) { 
-          clean_assembly_wf(assemblyPolished, index_fna)
-          assemblies = assemblies.concat(clean_assembly_wf.out)
-        }
-
-        // ENA submission
-        if (params.study || params.sample || params.run) {
-          ena_manifest(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
-          ena_project_xml(assemblyPolished, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
-        }
+        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyReady)
       }
 
       // Hybrid SPAdes
       if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
         // assembly w/ spades
         hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
-        assemblyRaw = hybrid_assembly_wf.out
+        assemblyReady = hybrid_assembly_wf.out
 
-        // polish
-        illumina_polishing_wf(assemblyRaw, illumina_input_ch)
-        assemblyPolished = illumina_polishing_wf.out
+        // collect for analysis step 
+        assemblies = assemblyReady
+      }
 
-        // combine for analysis step 
-        assemblies = assemblyRaw.concat(assemblyPolished)
+      // short-read polishing
+      if (params.illumina) {
+        illumina_polishing_wf(assemblyReady, illumina_input_ch)
+        assemblyReady = illumina_polishing_wf.out
+        assemblies = assemblies.concat(assemblyReady)
+      }
 
-        // ENA submission
-        if (params.study || params.sample || params.run) {
-          ena_manifest_hybrid(assemblyPolished)
-          ena_project_xml_hybrid(assemblyPolished)
-        }
+      // clean assembly
+      if (clean_assembly_ch) { 
+        clean_assembly_wf(assemblyReady, clean_assembly_ch)
+        assemblyReady = clean_assembly_wf.out
+        assemblies = assemblies.concat(assemblyReady)
       }
 
       // analysis workflow
@@ -424,6 +409,18 @@ workflow {
       else { download_diamond(); database_diamond = download_diamond.out }
       analysis_wf(assemblies, database_diamond)
 
+      // ENA submission
+      if (!params.illumina || params.assemblerHybrid != 'spades') { 
+        if (params.study || params.sample || params.run) {
+          ena_manifest(assemblyReady, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
+          ena_project_xml(assemblyReady, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
+        }
+      } else {
+        if (params.study || params.sample || params.run) {
+          ena_manifest_hybrid(assemblyReady)
+          ena_project_xml_hybrid(assemblyReady)
+        }
+      }
 }
 
 
@@ -465,13 +462,16 @@ def helpMSG() {
      --dia_db             input for diamond database e.g.: 'databases/database_uniprot.dmnd
 
     ${c_yellow}Decontamination:${c_reset}
-    You have three options to provide references for decontamination:
+    You have three options to provide references for decontamination. 
+    Per default phiX/DCS controls will be used to clean your Illumina/ONT data.
+    Deactivate cleaning via '--clean_ont false', etc..
 
     1) Provide prepared minimap2 indices...
-    --bbduk         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.bbduk]
-    --index_ont     minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.index_ont]
-    --index_fna     minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.index_fna]
-    --index_ill     minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.index_ill]
+    --clean_ont         minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.clean_ont]
+    --clean_ill         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.clean_ill]
+    --clean_ill_minimap Deprecated, use above command is recommended
+                        minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.clean_ill_minimap]
+    --clean_assembly    minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.clean_assembly]
 
     2) Or use your own FASTA...
     --host          use your own FASTA sequence for decontamination, e.g., host.fasta.gz. minimap2 indices will be calculated for you. [default: $params.host]
