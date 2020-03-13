@@ -4,7 +4,7 @@ process pilon {
 
     errorStrategy { 'retry' }
     cpus { 24 }
-    memory { 360.GB * task.attempt }
+    memory { 330.GB * task.attempt }
     clusterOptions { '-P bigmem' }
     maxRetries 3
       
