@@ -368,7 +368,7 @@ workflow {
         illumina_preprocess_wf(illumina_input_ch, clean_ill_ch)
       }
 
-      // Flye-based assembly w/ optional short-read polishing
+      // Flye-based assembly followed by optional short-read polishing
       if (!params.illumina || params.assemblerHybrid != 'spades') { 
         // assembly w/ flye
         nanopore_assembly_wf(nanopore_preprocess_wf.out)
@@ -378,6 +378,13 @@ workflow {
 
         // combine for analysis step 
         assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyReady)
+
+        // polish with short reads
+        if (params.illumina) {
+          illumina_polishing_wf(assemblyReady, illumina_input_ch)
+         assemblyReady = illumina_polishing_wf.out
+         assemblies = assemblies.concat(assemblyReady)
+        }
       }
 
       // Hybrid SPAdes
@@ -388,13 +395,6 @@ workflow {
 
         // collect for analysis step 
         assemblies = assemblyReady
-      }
-
-      // short-read polishing
-      if (params.illumina) {
-        illumina_polishing_wf(assemblyReady, illumina_input_ch)
-        assemblyReady = illumina_polishing_wf.out
-        assemblies = assemblies.concat(assemblyReady)
       }
 
       // clean assembly
