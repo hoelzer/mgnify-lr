@@ -5,7 +5,7 @@ process spades {
     errorStrategy { 'retry' }
     cpus { 36 }
     memory { 400.GB * task.attempt }
-    clusterOptions { '-P bigmem' }
+    clusterOptions { '-P bigmem -q short' }
     maxRetries 3
 
     input:

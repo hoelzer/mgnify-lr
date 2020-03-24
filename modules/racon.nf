@@ -4,7 +4,7 @@ process racon {
     errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
     cpus { 24 }
     memory { 60.GB * task.attempt }
-    clusterOptions { '-P bigmem' }
+    clusterOptions { '-P bigmem -q short' }
     maxRetries 2
 
    input:

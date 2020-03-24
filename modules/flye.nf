@@ -6,7 +6,7 @@ process flye {
     errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
     cpus { 30 }
     memory { 120.GB * task.attempt }
-    clusterOptions { '-P bigmem' }
+    clusterOptions { '-P bigmem -q short' }
     maxRetries 3
     
     input:

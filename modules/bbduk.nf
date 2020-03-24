@@ -5,7 +5,7 @@ process bbduk {
     errorStrategy { 'retry' }
     cpus { 16 }
     memory { 40.GB * task.attempt }
-    clusterOptions { '-P bigmem' }
+    clusterOptions { '-P bigmem -q short' }
     maxRetries 3
 
     input:
