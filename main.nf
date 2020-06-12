@@ -93,7 +93,6 @@ include fastp from './modules/fastp'
 include nanoplot from './modules/nanoplot'
    
 // estimate genome size
-//include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
 include estimate_gsize from './modules/estimate_gsize'
 
 // assembly & polishing
@@ -140,7 +139,7 @@ workflow download_host_genome {
     if (!params.cloudProcess) { get_host(); db = get_host.out }
     // cloud storage via db_preload.exists()
     else {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
+        db_preload = file("${params.databases}/hosts/${params.species}/${params.species}.fa.gz")
       }
     if (db_preload.exists()) { db = db_preload }
     else  { get_host(); db = get_host.out } 
@@ -152,7 +151,7 @@ workflow download_diamond {
     main:
         if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
         else { 
-            dia_db_preload = file("${params.cloudDatabase}/diamond/database_uniprot.dmnd")
+            dia_db_preload = file("${params.databases}/diamond/database_uniprot.dmnd")
             if (dia_db_preload.exists()) { database_diamond = dia_db_preload }    
             else  { diamond_download_db() ; database_diamond = diamond_download_db.out }
         }
@@ -502,18 +501,33 @@ def helpMSG() {
 
     ${c_yellow}LSF computing:${c_reset}
     For execution of the workflow on a HPC with LSF adjust the following parameters:
-    --databases         defines the path where databases are stored [default: $params.cloudDatabase]
+    --databases         defines the path where databases are stored [default: $params.dbs]
     --workdir           defines the path where nextflow writes tmp files [default: $params.workdir]
     --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
 
-    Profile:
-    -profile                 local [default]
-                             conda
+
+    ${c_yellow}Profile:${c_reset}
+    You can merge different profiles for different setups, e.g.
+
+        -profile local,docker
+        -profile lsf,singularity
+        -profile slurm,singularity
+
+    -profile                 standard (local,docker) [default]
+
+                             local
+                             lsf
+                             slurm
+
                              docker
                              singularity
-                             lsf (HPC w/ LSF, singularity/docker)
-                             ebi (EBI cluster specific, singularity and docker)
-                             gcloud (googlegenomics and docker)
+                             conda
+
+                             ebi (lsf,singularity; preconfigured for the EBI cluster)
+                             yoda (lsf,singularity; preconfigured for the EBI YODA cluster)
+                             ara (slurm,conda; preconfigured for the ARA cluster)
+                             nih (slurm,singularity; preconfigured for the NIH cluster)
+                             gcloud (use this as template for your own GCP setup)
                              ${c_reset}
 
     """.stripIndent()

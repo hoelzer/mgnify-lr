@@ -1,5 +1,5 @@
 process diamond_download_db {
-        if (params.cloudProcess) { publishDir "${params.cloudDatabase}/diamond", mode: 'copy', pattern: "database_uniprot.dmnd" }
+        if (params.cloudProcess) { publishDir "${params.databases}/diamond", mode: 'copy', pattern: "database_uniprot.dmnd" }
         else { storeDir 'nextflow-autodownload-databases/diamond' }  
         label 'diamond' 
       output:
