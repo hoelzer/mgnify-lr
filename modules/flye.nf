@@ -2,12 +2,6 @@ process flye {
     label 'flye'
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "${name}_raw_flye.fasta"
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
-
-    errorStrategy { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
-    cpus { 30 }
-    memory { 120.GB * task.attempt }
-    clusterOptions { '-P bigmem' }
-    maxRetries 3
     
     input:
     tuple val(name), file(ont), file(genome_size)

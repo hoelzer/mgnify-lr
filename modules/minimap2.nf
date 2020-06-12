@@ -1,10 +1,10 @@
 process minimap2_index_ont {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "nextflow-autodownload-databases/minimap2/" 
+      storeDir "${params.databases}/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -19,10 +19,10 @@ process minimap2_index_ont {
 process minimap2_index_ill {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "nextflow-autodownload-databases/minimap2/" 
+      storeDir "${params.databases}/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -37,10 +37,10 @@ process minimap2_index_ill {
 process minimap2_index_assembly {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "nextflow-autodownload-databases/minimap2/" 
+      storeDir "${params.databases}/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -78,7 +78,6 @@ process minimap2_clean_ont {
 
   script:
     """
-
     # remove spaces in read IDs to keep them in the later cleaned output
     if [[ ${fastq} =~ \\.gz\$ ]]; then
       zcat ${fastq} | sed 's/ /DECONTAMINATE/g' > ${name}.id.fastq

@@ -93,7 +93,6 @@ include fastp from './modules/fastp'
 include nanoplot from './modules/nanoplot'
    
 // estimate genome size
-//include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
 include estimate_gsize from './modules/estimate_gsize'
 
 // assembly & polishing
@@ -107,11 +106,11 @@ include pilon from './modules/pilon'
 // decontamination
 include bbduk from './modules/bbduk' 
 include minimap2_index_ont from './modules/minimap2' 
-include minimap2_index_ill from './modules/minimap2' 
+//include minimap2_index_ill from './modules/minimap2' 
 include minimap2_index_assembly from './modules/minimap2' 
 include minimap2_clean_ont as clean_ont from './modules/minimap2' 
 include minimap2_clean_assembly as clean_assembly from './modules/minimap2' 
-include minimap2_clean_ill as clean_ill from './modules/minimap2' 
+//include minimap2_clean_ill as clean_ill from './modules/minimap2' 
 
 // analysis
 include prodigal from './modules/prodigal'
@@ -140,7 +139,7 @@ workflow download_host_genome {
     if (!params.cloudProcess) { get_host(); db = get_host.out }
     // cloud storage via db_preload.exists()
     else {
-        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
+        db_preload = file("${params.databases}/hosts/${params.species}/${params.species}.fa.gz")
       }
     if (db_preload.exists()) { db = db_preload }
     else  { get_host(); db = get_host.out } 
@@ -152,7 +151,7 @@ workflow download_diamond {
     main:
         if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
         else { 
-            dia_db_preload = file("${params.cloudDatabase}/diamond/database_uniprot.dmnd")
+            dia_db_preload = file("${params.databases}/diamond/database_uniprot.dmnd")
             if (dia_db_preload.exists()) { database_diamond = dia_db_preload }    
             else  { diamond_download_db() ; database_diamond = diamond_download_db.out }
         }
@@ -199,15 +198,8 @@ workflow illumina_preprocess_wf {
         fastp(illumina_input_ch)
         illumina_output_ch = fastp.out[0]
 
-      if (clean_ill_ch && params.clean_ill) {
         bbduk(illumina_output_ch, clean_ill_ch)
         illumina_output_ch = bbduk.out[0]
-      } else {
-        if (clean_ill_ch) {
-          clean_ill(illumina_output_ch, clean_ill_ch)
-          illumina_output_ch = clean_ill.out[0]
-        }
-      }
 
   emit:   
         illumina_output_ch
@@ -311,12 +303,12 @@ workflow index_wf {
   main:
     minimap2_index_ont(host)
     minimap2_index_assembly(host)
-    minimap2_index_ill(host)
+    //minimap2_index_ill(host)
 
   emit:
     minimap2_index_ont.out
     minimap2_index_assembly.out
-    minimap2_index_ill.out
+    //minimap2_index_ill.out
 }
 
 
@@ -329,15 +321,27 @@ workflow index_wf {
 workflow {
 
       clean_ont_ch = false
-      clean_ill_ch = false // use bbduk per default
+      clean_ill_ch = false // uses bbduk per default
       clean_assembly_ch = false
-      clean_ill_minimap_ch = false // sr clean w/ minimap
+      if (params.illumina && params.nano) {
+        clean_assembly_ch = file('clean/assembly/NC_001422_DCS.mmi', checkIfExists: true)
+      } else {
+        if (params.illumina) {
+          clean_assembly_ch = file('clean/assembly/NC_001422_FNA.mmi', checkIfExists: true)          
+        }
+        if (params.nano) {
+          clean_assembly_ch = file('clean/assembly/DCS_FNA.mmi', checkIfExists: true)          
+        }
+      }
 
       // 1) check for user defined minimap2 indices 
       if (params.clean_ont) { clean_ont_ch = file(params.clean_ont, checkIfExists: true) }
-      if (params.clean_assembly) { clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) }
       if (params.clean_ill) { clean_ill_ch = file(params.clean_ill, checkIfExists: true) }
-      if (params.clean_ill_minimap) { clean_ill_ch = file(params.clean_ill_minimap, checkIfExists: true) }
+      if (params.clean_assembly) { 
+
+        clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) 
+      }
+ 
 
       // 2) build indices if just a fasta is provided
       // WIP
@@ -345,7 +349,6 @@ workflow {
         index_wf(host_input_ch)
         clean_ont_ch = index_wf.out[0]
         clean_assembly_ch = index_wf.out[1]
-        clean_ill_minimap_ch = index_wf.out[2]
       }
 
       // 3) download genome and build indices
@@ -357,7 +360,6 @@ workflow {
         index_wf(host_input_ch)
         clean_ont_ch = index_wf.out[0]
         clean_assembly_ch = index_wf.out[1]
-        clean_ill_minimap_ch = index_wf.out[2]
       }
       
       // ONT preprocess
@@ -381,9 +383,9 @@ workflow {
 
         // polish with short reads
         if (params.illumina) {
-          illumina_polishing_wf(assemblyReady, illumina_input_ch)
-         assemblyReady = illumina_polishing_wf.out
-         assemblies = assemblies.concat(assemblyReady)
+          illumina_polishing_wf(assemblyReady, illumina_preprocess_wf.out)
+          assemblyReady = illumina_polishing_wf.out
+          assemblies = assemblies.concat(assemblyReady)
         }
       }
 
@@ -469,9 +471,9 @@ def helpMSG() {
     1) Provide prepared minimap2 indices...
     --clean_ont         minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.clean_ont]
     --clean_ill         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.clean_ill]
-    --clean_ill_minimap Deprecated, use above command is recommended
-                        minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.clean_ill_minimap]
     --clean_assembly    minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.clean_assembly]
+                        during runtime either DCS (for ONT), phiX (for Illumina), or DCS+phiX (hybrid) will be automatically 
+                        selected based on your input
 
     2) Or use your own FASTA...
     --host          use your own FASTA sequence for decontamination, e.g., host.fasta.gz. minimap2 indices will be calculated for you. [default: $params.host]
@@ -500,20 +502,36 @@ def helpMSG() {
     -with-dag chart.html     generates a flowchart for the process tree
     -with-timeline time.html timeline (may cause errors)
 
-    ${c_yellow}LSF computing:${c_reset}
+    ${c_yellow}Computing:${c_reset}
     For execution of the workflow on a HPC with LSF adjust the following parameters:
-    --databases         defines the path where databases are stored [default: $params.cloudDatabase]
-    --workdir           defines the path where nextflow writes tmp files [default: $params.workdir]
-    --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
+    --databases             defines the path where databases are stored [default: $params.dbs]
+    --workdir               defines the path where nextflow writes tmp files [default: $params.workdir]
+    --condaCacheDir         defines the path where environments (conda) are cached [default: $params.condaCacheDir]
+    --singularityCacheDir   defines the path where images (singularity) are cached [default: $params.singularityCacheDir] 
 
-    Profile:
-    -profile                 local [default]
-                             conda
+
+    ${c_yellow}Profile:${c_reset}
+    You can merge different profiles for different setups, e.g.
+
+        -profile local,docker
+        -profile lsf,singularity
+        -profile slurm,singularity
+
+    -profile                 standard (local,docker) [default]
+
+                             local
+                             lsf
+                             slurm
+
                              docker
                              singularity
-                             lsf (HPC w/ LSF, singularity/docker)
-                             ebi (EBI cluster specific, singularity and docker)
-                             gcloud (googlegenomics and docker)
+                             conda
+
+                             ebi (lsf,singularity; preconfigured for the EBI cluster)
+                             yoda (lsf,singularity; preconfigured for the EBI YODA cluster)
+                             ara (slurm,conda; preconfigured for the ARA cluster)
+                             nih (slurm,singularity; preconfigured for the NIH cluster)
+                             gcloud (use this as template for your own GCP setup)
                              ${c_reset}
 
     """.stripIndent()
