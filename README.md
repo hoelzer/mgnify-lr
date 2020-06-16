@@ -8,17 +8,6 @@ Maintainer: Martin H&ouml;lzer
 
 Email: hoelzer.martin@gmail.com
 
-# Workflow
-
-## Nanopore-only w/ decontamination
-![chart](figures/chart_ont_clean.png)
-
-## Hybrid w/ metaSPAdes and decontamination
-![chart](figures/chart_hybrid_spades_clean.png)
-
-## Hybrid w/ flye and decontamination
-![chart](figures/chart_hybrid_flye_clean.png)
-
 # Input examples
 
 * **one** .fastq file per sample: `--nano 'sample1.fastq'`
@@ -45,11 +34,12 @@ to also decontaminate your reads and final assembly just add a ``--species`` lik
 nextflow run hoelzer/mgnify-lr --nano ~/.nextflow/assets/hoelzer/mgnify-lr/test_data/ERR3662306_1_small.fastq.gz --output ~/mgnify-lr_output --species eco -profile local,docker
 ```
 
-Currently supported species are:
+Currently supported species with auto-download are:
 * hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
 * mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
 * eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]
 
+__Per default__ Illumina data will be cleaned for [phiX phage](https://environmentalmicrobiome.biomedcentral.com/articles/10.1186/1944-3277-10-18) and Nanopore data for [DNA CS (DCS)](https://assets.ctfassets.net/hkzaxo8a05x5/2IX56YmF5ug0kAQYoAg2Uk/159523e326b1b791e3b842c4791420a6/DNA_CS.txt) spike-in. You can deactivate this via the `--phix` and `--dcs` flags.
 
 # Profiles
 This workflow comes with some pre-defined profiles for local execution and execution on a HPC using Conda, Docker, and Singularity. You can combine different profiles to run the pipeline on different systems (local, LSF, SLURM, Cloud) using different technologies (Conda, Docker, Singularity). 
@@ -69,6 +59,19 @@ If you want to run on a HPC w/ LSF and Singularity use:
 -profile lsf,docker,singularity
 # In that case you should also adjust --cachedir, --workdir, --databases to match your HPC environment
 ```
+
+# Workflow
+
+## Nanopore-only w/ decontamination
+![chart](figures/chart_ont_clean.png)
+
+## Hybrid w/ metaSPAdes and decontamination
+![chart](figures/chart_hybrid_spades_clean.png)
+
+## Hybrid w/ flye and decontamination
+![chart](figures/chart_hybrid_flye_clean.png)
+
+
 
 # Execution examples of possible input and decontamination combinations
 
