@@ -324,13 +324,13 @@ workflow {
       clean_ill_ch = false // uses bbduk per default
       clean_assembly_ch = false
       if (params.illumina && params.nano) {
-        clean_assembly_ch = file('clean/assembly/NC_001422_DCS.mmi', checkIfExists: true)
+        clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_DCS.mmi", checkIfExists: true)
       } else {
         if (params.illumina) {
-          clean_assembly_ch = file('clean/assembly/NC_001422_FNA.mmi', checkIfExists: true)          
+          clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_FNA.mmi", checkIfExists: true)          
         }
         if (params.nano) {
-          clean_assembly_ch = file('clean/assembly/DCS_FNA.mmi', checkIfExists: true)          
+          clean_assembly_ch = file("${baseDir}/clean/assembly/DCS_FNA.mmi", checkIfExists: true)          
         }
       }
 

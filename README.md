@@ -56,8 +56,8 @@ If you want to use Conda instead of Docker:
 
 If you want to run on a HPC w/ LSF and Singularity use:
 ```
--profile lsf,docker,singularity
-# In that case you should also adjust --cachedir, --workdir, --databases to match your HPC environment
+-profile lsf,singularity
+# In that case you should also adjust --singularityCacheDir, --workdir, --databases to match your HPC environment
 ```
 
 # Workflow
