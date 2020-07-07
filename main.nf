@@ -33,9 +33,11 @@ if( !nextflow.version.matches('20.01+') ) {
 }
 
 if (params.profile) { exit 1, "--profile is WRONG use -profile" }
-if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
-  if (params.sra == '') {
-      exit 1, "input missing, use [--nano] or [--sra] or [--nano] and [--illumina]"
+if (params.fasta == '') {
+  if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
+    if (params.sra == '') {
+      exit 1, "input missing, use [--nano] or [--sra] or [--nano] and [--illumina] or [--fasta]"
+    }
   }
 }
 
@@ -63,6 +65,18 @@ if (params.illumina && params.list) { illumina_input_ch = Channel
 else if (params.illumina) { illumina_input_ch = Channel
   .fromFilePairs( params.illumina , checkIfExists: true )
   .view() }
+
+// fasta assembly input & --list support
+if (params.fasta && params.list) { fasta_input_ch = Channel
+  .fromPath( params.fasta, checkIfExists: true )
+  .splitCsv()
+  .map { row -> ["${row[0]}", file("${row[1]}", checkIfExists: true)] }
+  .view() }
+else if (params.fasta) { fasta_input_ch = Channel
+  .fromPath( params.fasta, checkIfExists: true)
+  .map { file -> tuple(file.simpleName, file) }
+  .view() }
+
 
 // SRA reads input 
 if (params.sra) {
@@ -320,90 +334,96 @@ workflow index_wf {
 
 workflow {
 
-      clean_ont_ch = false
-      clean_ill_ch = false // uses bbduk per default
-      clean_assembly_ch = false
-      if (params.illumina && params.nano) {
-        clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_DCS.mmi", checkIfExists: true)
-      } else {
-        if (params.illumina) {
-          clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_FNA.mmi", checkIfExists: true)          
-        }
-        if (params.nano) {
-          clean_assembly_ch = file("${baseDir}/clean/assembly/DCS_FNA.mmi", checkIfExists: true)          
-        }
+      if (params.fasta) {
+        assemblies = fasta_input_ch
       }
+      else {
+        clean_ont_ch = false
+        clean_ill_ch = false // uses bbduk per default
+        clean_assembly_ch = false
+        if (params.illumina && params.nano) {
+          clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_DCS.mmi", checkIfExists: true)
+        } else {
+          if (params.illumina) {
+            clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_FNA.mmi", checkIfExists: true)          
+          }
+          if (params.nano) {
+            clean_assembly_ch = file("${baseDir}/clean/assembly/DCS_FNA.mmi", checkIfExists: true)          
+          }
+        }
 
-      // 1) check for user defined minimap2 indices 
-      if (params.clean_ont) { clean_ont_ch = file(params.clean_ont, checkIfExists: true) }
-      if (params.clean_ill) { clean_ill_ch = file(params.clean_ill, checkIfExists: true) }
-      if (params.clean_assembly) { 
+        // 1) check for user defined minimap2 indices 
+        if (params.clean_ont) { clean_ont_ch = file(params.clean_ont, checkIfExists: true) }
+        if (params.clean_ill) { clean_ill_ch = file(params.clean_ill, checkIfExists: true) }
+        if (params.clean_assembly) { 
 
-        clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) 
-      }
+          clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) 
+        }
  
+        // 2) build indices if just a fasta is provided
+        // WIP
+        if (params.host) {
+          index_wf(host_input_ch)
+          clean_ont_ch = index_wf.out[0]
+          clean_assembly_ch = index_wf.out[1]
+        }
 
-      // 2) build indices if just a fasta is provided
-      // WIP
-      if (params.host) {
-        index_wf(host_input_ch)
-        clean_ont_ch = index_wf.out[0]
-        clean_assembly_ch = index_wf.out[1]
-      }
-
-      // 3) download genome and build indices
-      // WIP
-      if (params.species) { 
-        download_host_genome()
-        genome = download_host_genome.out
-        host_input_ch = Channel.of( [params.species, genome] )
-        index_wf(host_input_ch)
-        clean_ont_ch = index_wf.out[0]
-        clean_assembly_ch = index_wf.out[1]
-      }
+        // 3) download genome and build indices
+        // WIP
+        if (params.species) { 
+          download_host_genome()
+          genome = download_host_genome.out
+          host_input_ch = Channel.of( [params.species, genome] )
+          index_wf(host_input_ch)
+          clean_ont_ch = index_wf.out[0]
+          clean_assembly_ch = index_wf.out[1]
+        }
       
-      // ONT preprocess
-      nanopore_preprocess_wf(nano_input_ch, clean_ont_ch)
+        // ONT preprocess
+        if (params.nano) {
+          nanopore_preprocess_wf(nano_input_ch, clean_ont_ch)
+        }
 
-      // ILL preprocess
-      if (params.illumina ) { 
-        illumina_preprocess_wf(illumina_input_ch, clean_ill_ch)
-      }
+        // ILL preprocess
+        if (params.illumina ) { 
+          illumina_preprocess_wf(illumina_input_ch, clean_ill_ch)
+        }
 
-      // Flye-based assembly followed by optional short-read polishing
-      if (!params.illumina || params.assemblerHybrid != 'spades') { 
-        // assembly w/ flye
-        nanopore_assembly_wf(nanopore_preprocess_wf.out)
-        assemblyRaw = nanopore_assembly_wf.out[0]
-        assemblyRacon = nanopore_assembly_wf.out[1]
-        assemblyReady = nanopore_assembly_wf.out[2]
+        // Flye-based assembly followed by optional short-read polishing
+        if (!params.illumina || params.assemblerHybrid != 'spades') { 
+          // assembly w/ flye
+          nanopore_assembly_wf(nanopore_preprocess_wf.out)
+          assemblyRaw = nanopore_assembly_wf.out[0]
+          assemblyRacon = nanopore_assembly_wf.out[1]
+          assemblyReady = nanopore_assembly_wf.out[2]
 
-        // combine for analysis step 
-        assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyReady)
+          // combine for analysis step 
+          assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyReady)
 
-        // polish with short reads
-        if (params.illumina) {
-          illumina_polishing_wf(assemblyReady, illumina_preprocess_wf.out)
-          assemblyReady = illumina_polishing_wf.out
+          // polish with short reads
+          if (params.illumina) {
+            illumina_polishing_wf(assemblyReady, illumina_preprocess_wf.out)
+            assemblyReady = illumina_polishing_wf.out
+            assemblies = assemblies.concat(assemblyReady)
+          }
+        }
+
+        // Hybrid SPAdes
+        if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
+          // assembly w/ spades
+          hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
+          assemblyReady = hybrid_assembly_wf.out
+
+          // collect for analysis step 
+          assemblies = assemblyReady
+        }
+
+        // clean assembly
+        if (clean_assembly_ch) { 
+          clean_assembly_wf(assemblyReady, clean_assembly_ch)
+          assemblyReady = clean_assembly_wf.out
           assemblies = assemblies.concat(assemblyReady)
         }
-      }
-
-      // Hybrid SPAdes
-      if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
-        // assembly w/ spades
-        hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
-        assemblyReady = hybrid_assembly_wf.out
-
-        // collect for analysis step 
-        assemblies = assemblyReady
-      }
-
-      // clean assembly
-      if (clean_assembly_ch) { 
-        clean_assembly_wf(assemblyReady, clean_assembly_ch)
-        assemblyReady = clean_assembly_wf.out
-        assemblies = assemblies.concat(assemblyReady)
       }
 
       // analysis workflow
@@ -448,6 +468,7 @@ def helpMSG() {
     ${c_yellow}Input:${c_reset}
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
+    ${c_green} --fasta ${c_reset}           '*.fasta' or '*.fasta.gz'   -> one sample per file
     ${c_green} --sra ${c_reset}             ERR3407986                  -> Run acc, currently only for ONT data supported
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
