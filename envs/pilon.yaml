@@ -4,5 +4,5 @@ channels:
   - conda-forge
 dependencies:
   - pilon=1.23
-  - samtools=1.9
+  - samtools=1.10
   - bwa=0.7.17

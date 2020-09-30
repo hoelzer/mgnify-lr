@@ -1,6 +1,6 @@
-name: nanoplot
+name: samtools
 channels:
   - bioconda
   - conda-forge
 dependencies:
-  - nanoplot=1.32.0
+  - samtools=1.10

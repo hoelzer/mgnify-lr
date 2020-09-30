@@ -4,16 +4,15 @@ process flye {
     publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "flye.log"
     
     input:
-    tuple val(name), file(ont), file(genome_size)
+    tuple val(name), file(ont)
     
     output:
-    tuple val(name), file(ont), file("${name}_raw_flye.fasta")
-    tuple val(name), file("flye.log")
+    tuple val(name), file(ont), file("${name}_raw_flye.fasta"), emit: assembly
+    tuple val(name), file("flye.log"), emit: log
     
-    shell:
+    script:
     """
-    size=\$(cat !{genome_size})
-    flye --nano-raw !{ont} -o flye_output -t !{task.cpus} --plasmids --meta --genome-size \$size
+    flye --nano-raw ${ont} -o flye_output -t ${task.cpus} --plasmids --meta
     mv flye_output/assembly.fasta ${name}_raw_flye.fasta
     mv flye_output/flye.log flye.log
     """

@@ -1,5 +1,5 @@
 #!/usr/bin/env nextflow
-nextflow.preview.dsl=2
+nextflow.enable.dsl=2
 
 /*
 Nextflow -- MGnify long-read support
@@ -99,44 +99,46 @@ if (params.host) {
 **************************/
 
 // databases
-include get_host from './modules/get_host'
-include diamond_download_db from './modules/diamondgetdatabase'
+include {get_host} from './modules/get_host'
+include {diamond_download_db} from './modules/diamondgetdatabase'
 
 // read preprocessing and qc
-include removeSmallReads from './modules/removeSmallReads'
-include fastp from './modules/fastp' 
-include nanoplot from './modules/nanoplot'
+include {removeSmallReads} from './modules/removeSmallReads'
+include {fastp} from './modules/fastp' 
+include {nanoplot} from './modules/nanoplot'
    
 // estimate genome size
-include estimate_gsize from './modules/estimate_gsize'
+include {estimate_gsize} from './modules/estimate_gsize'
 
 // assembly & polishing
-include flye from './modules/flye'
-include spades from './modules/spades'
-include minimap2_to_polish from './modules/minimap2'
-include racon from './modules/racon'
-include medaka from './modules/medaka' 
-include pilon from './modules/pilon' 
+include {flye} from './modules/flye'
+include {spades} from './modules/spades'
+include {minimap2_to_polish} from './modules/minimap2'
+include {racon} from './modules/racon'
+include {medaka} from './modules/medaka' 
+include {bwa as round1_bwa; bwa as round2_bwa } from './modules/bwa'
+include {samtools as round1_samtools; samtools as round2_samtools } from './modules/samtools' 
+include {pilon as round1_pilon; pilon as round2_pilon } from './modules/pilon'
 
 // decontamination
-include bbduk from './modules/bbduk' 
-include minimap2_index_ont from './modules/minimap2' 
+include {bbduk} from './modules/bbduk' 
+include {minimap2_index_ont} from './modules/minimap2' 
 //include minimap2_index_ill from './modules/minimap2' 
-include minimap2_index_assembly from './modules/minimap2' 
-include minimap2_clean_ont as clean_ont from './modules/minimap2' 
-include minimap2_clean_assembly as clean_assembly from './modules/minimap2' 
+include {minimap2_index_assembly} from './modules/minimap2' 
+include {minimap2_clean_ont as clean_ont} from './modules/minimap2' 
+include {minimap2_clean_assembly as clean_assembly} from './modules/minimap2' 
 //include minimap2_clean_ill as clean_ill from './modules/minimap2' 
 
 // analysis
-include prodigal from './modules/prodigal'
-include diamond from './modules/diamond'
-include ideel from './modules/ideel'
+include {prodigal} from './modules/prodigal'
+include {diamond} from './modules/diamond'
+include {ideel} from './modules/ideel'
 
 // ENA submission
-include ena_manifest from './modules/ena_manifest' 
-include ena_manifest_hybrid from './modules/ena_manifest'
-include ena_project_xml from './modules/ena_project_xml'
-include ena_project_xml_hybrid from './modules/ena_project_xml' 
+include {ena_manifest} from './modules/ena_manifest' 
+include {ena_manifest_hybrid} from './modules/ena_manifest'
+include {ena_project_xml} from './modules/ena_project_xml'
+include {ena_project_xml_hybrid} from './modules/ena_project_xml' 
 
 
 /************************** 
@@ -228,14 +230,14 @@ workflow nanopore_assembly_wf {
 
   main:
         if (params.assemblerLong == 'flye') { 
-          // size estimation for flye 
+          // size estimation for flye, deprecated since v2.8 and not used anymore in the flye module
           estimate_gsize(nano_input_ch) 
           // assembly raw
-          flye(nano_input_ch.join(estimate_gsize.out))
+          flye(nano_input_ch)
           // polish
-          medaka(racon(minimap2_to_polish(flye.out[0])))
+          medaka(racon(minimap2_to_polish(flye.out.assembly)))
           // collect assembly outputs
-          assemblyUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+          assemblyUnpolished = flye.out.assembly.map {name, reads, assembly -> [name, assembly]}
           assemblyRacon = racon.out.map {name, reads, assembly -> [name, assembly]}
           assemblyMedaka = medaka.out
         }
@@ -246,7 +248,7 @@ workflow nanopore_assembly_wf {
         assemblyUnpolished
         assemblyRacon
         assemblyMedaka
-        flye.out[1] // the flye.log
+        flye.out.log
         estimate_gsize.out
 }
 
@@ -271,9 +273,12 @@ workflow illumina_polishing_wf {
   take:  assembly_input_ch
          illumina_input_ch
   main:
-        pilon(assembly_input_ch, illumina_input_ch)
+        round1_pilon(assembly_input_ch.join(round1_samtools(round1_bwa(illumina_input_ch.join(assembly_input_ch)))), 'round1')
+        assembly_round1 = round1_pilon.out 
+        round2_pilon(assembly_round1.join(round2_samtools(round2_bwa(illumina_input_ch.join(assembly_round1)))), 'round2')
+        assembler_output = round2_pilon.out 
   emit:   
-        pilon.out
+        assembler_output
 }
 
 
@@ -392,7 +397,7 @@ workflow {
 
         // Flye-based assembly followed by optional short-read polishing
         if (!params.illumina || params.assemblerHybrid != 'spades') { 
-          // assembly w/ flye
+          // assembly w/ long-read start, e.g. flye
           nanopore_assembly_wf(nanopore_preprocess_wf.out)
           assemblyRaw = nanopore_assembly_wf.out[0]
           assemblyRacon = nanopore_assembly_wf.out[1]
@@ -474,9 +479,10 @@ def helpMSG() {
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
     ${c_yellow}Options:${c_reset}
-    --cores             max cores for local use [default: $params.cores]
+    --cores             max cores per process for local use [default: $params.cores]
+    --max_cores         max cores per machine for local use [default: $params.max_cores]
     --memory            max memory for local use [default: $params.cores]
-    --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
+    --gsize             [deprecated], will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
     --length            cutoff for ONT read length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades, flye default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
