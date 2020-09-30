@@ -1,6 +1,6 @@
-name: nanoplot
+name: bwa
 channels:
   - bioconda
   - conda-forge
 dependencies:
-  - nanoplot=1.32.0
+  - bwa=0.7.17

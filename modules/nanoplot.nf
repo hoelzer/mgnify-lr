@@ -12,7 +12,7 @@ process nanoplot {
       """
       NanoPlot -t ${task.cpus} --fastq ${reads} --title ${name} --color darkslategrey --N50 --plots hex --loglength -f png --store
       NanoPlot -t ${task.cpus} --pickle NanoPlot-data.pickle --title ${name} --color darkslategrey --N50 --plots hex --loglength -f pdf
-      mv *.html ${name}_read_quality_report.html
+      mv NanoPlot-report.html ${name}_read_quality_report.html
       mv NanoStats.txt ${name}_read_quality.txt
       """
 }
