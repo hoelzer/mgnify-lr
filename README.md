@@ -8,6 +8,8 @@ Maintainer: Martin H&ouml;lzer
 
 Email: hoelzer.martin@gmail.com
 
+**Discontinued and not maintained**
+
 # Input examples
 
 * **one** .fastq file per sample: `--nano 'sample1.fastq'`
