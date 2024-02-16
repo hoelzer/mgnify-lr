@@ -441,19 +441,21 @@ def helpMSG() {
     -with-timeline time.html timeline (may cause errors)
 
     ${c_yellow}LSF computing:${c_reset}
-    For execution of the workflow on a HPC with LSF adjust the following parameters:
-    --databases         defines the path where databases are stored [default: $params.cloudDatabase]
-    -w                  defines the path where nextflow writes tmp files [default: $workflow.workDir]
-    --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
+    For execution of the workflow on a HPC with LSF or SLURM you might need to adjust the following parameters:
+    -w                              defines the path where nextflow writes tmp files [default: $workflow.workDir]
+    --databases                     defines the path where databases are stored [default: $params.cloudDatabase]
+    --singularityCacheDir           defines the path where images (singularity) are cached [default: $params.singularityCacheDir] 
+    --condaCacheDir                 defines the path where environments (conda,mamba) are cached [default: $params.condaCacheDir] 
 
     Profile:
     -profile                 local [default]
                              conda
+                             mamba
                              docker
                              singularity
-                             lsf (HPC w/ LSF, singularity/docker)
+                             lsf (HPC w/ LSF, select singularity/docker/conda/mamba)
+                             slrum (HPC w/ SLURM, select singularity/docker/conda/mamba)
                              ebi (EBI cluster specific, singularity and docker)
-                             gcloud (googlegenomics and docker)
                              ${c_reset}
 
     """.stripIndent()
