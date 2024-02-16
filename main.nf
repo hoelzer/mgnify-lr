@@ -27,17 +27,10 @@ println "\033[2mCPUs to use: $params.cores"
 println "Output dir name: $params.output\u001B[0m"
 println " "}
 
-if( !nextflow.version.matches('20.01+') ) {
-    println "This workflow requires Nextflow version 20.01 or greater -- You are running version $nextflow.version"
-    exit 1
-}
-
 if (params.profile) { exit 1, "--profile is WRONG use -profile" }
-if (params.fasta == '') {
-  if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
-    if (params.sra == '') {
-      exit 1, "input missing, use [--nano] or [--sra] or [--nano] and [--illumina] or [--fasta]"
-    }
+if (params.nano == '' || (params.nano == '' && params.illumina == '')) { 
+  if (params.sra == '') {
+      exit 1, "input missing, use [--nano] or [--sra] or [--nano] and [--illumina]"
   }
 }
 
@@ -66,18 +59,6 @@ else if (params.illumina) { illumina_input_ch = Channel
   .fromFilePairs( params.illumina , checkIfExists: true )
   .view() }
 
-// fasta assembly input & --list support
-if (params.fasta && params.list) { fasta_input_ch = Channel
-  .fromPath( params.fasta, checkIfExists: true )
-  .splitCsv()
-  .map { row -> ["${row[0]}", file("${row[1]}", checkIfExists: true)] }
-  .view() }
-else if (params.fasta) { fasta_input_ch = Channel
-  .fromPath( params.fasta, checkIfExists: true)
-  .map { file -> tuple(file.simpleName, file) }
-  .view() }
-
-
 // SRA reads input 
 if (params.sra) {
 nano_input_ch = Channel
@@ -93,52 +74,50 @@ if (params.host) {
     .view()
 }
 
-
 /************************** 
 * MODULES
 **************************/
 
 // databases
-include {get_host} from './modules/get_host'
-include {diamond_download_db} from './modules/diamondgetdatabase'
+include { get_host } from './modules/get_host'
+include { diamond_download_db } from './modules/diamondgetdatabase'
 
 // read preprocessing and qc
-include {removeSmallReads} from './modules/removeSmallReads'
-include {fastp} from './modules/fastp' 
-include {nanoplot} from './modules/nanoplot'
+include { removeSmallReads } from './modules/removeSmallReads'
+include { fastp } from './modules/fastp' 
+include { nanoplot } from './modules/nanoplot'
    
 // estimate genome size
-include {estimate_gsize} from './modules/estimate_gsize'
+//include trim_low_abund from './modules/estimate_gsize' params(maxmem: params.maxmem)
+include { estimate_gsize } from './modules/estimate_gsize'
 
 // assembly & polishing
-include {flye} from './modules/flye'
-include {spades} from './modules/spades'
-include {minimap2_to_polish} from './modules/minimap2'
-include {racon} from './modules/racon'
-include {medaka} from './modules/medaka' 
-include {bwa as round1_bwa; bwa as round2_bwa } from './modules/bwa'
-include {samtools as round1_samtools; samtools as round2_samtools } from './modules/samtools' 
-include {pilon as round1_pilon; pilon as round2_pilon } from './modules/pilon'
+include { flye } from './modules/flye'
+include { spades } from './modules/spades'
+include { minimap2_to_polish } from './modules/minimap2'
+include { racon } from './modules/racon'
+include { medaka } from './modules/medaka' 
+include { pilon } from './modules/pilon' 
 
 // decontamination
-include {bbduk} from './modules/bbduk' 
-include {minimap2_index_ont} from './modules/minimap2' 
-//include minimap2_index_ill from './modules/minimap2' 
-include {minimap2_index_assembly} from './modules/minimap2' 
-include {minimap2_clean_ont as clean_ont} from './modules/minimap2' 
-include {minimap2_clean_assembly as clean_assembly} from './modules/minimap2' 
-//include minimap2_clean_ill as clean_ill from './modules/minimap2' 
+include { bbduk } from './modules/bbduk' 
+include { minimap2_index_ont } from './modules/minimap2' 
+include { minimap2_index_ill } from './modules/minimap2' 
+include { minimap2_index_fna } from './modules/minimap2' 
+include { minimap2_to_decontaminate_fastq as clean_ont } from './modules/minimap2' 
+include { minimap2_to_decontaminate_fasta as clean_assembly } from './modules/minimap2' 
+include { minimap2_to_decontaminate_ill as clean_ill } from './modules/minimap2' 
 
 // analysis
-include {prodigal} from './modules/prodigal'
-include {diamond} from './modules/diamond'
-include {ideel} from './modules/ideel'
+include { prodigal } from './modules/prodigal'
+include { diamond } from './modules/diamond'
+include { ideel } from './modules/ideel'
 
 // ENA submission
-include {ena_manifest} from './modules/ena_manifest' 
-include {ena_manifest_hybrid} from './modules/ena_manifest'
-include {ena_project_xml} from './modules/ena_project_xml'
-include {ena_project_xml_hybrid} from './modules/ena_project_xml' 
+include { ena_manifest } from './modules/ena_manifest' 
+include { ena_manifest_hybrid } from './modules/ena_manifest'
+include { ena_project_xml } from './modules/ena_project_xml'
+include { ena_project_xml_hybrid } from './modules/ena_project_xml' 
 
 
 /************************** 
@@ -156,7 +135,7 @@ workflow download_host_genome {
     if (!params.cloudProcess) { get_host(); db = get_host.out }
     // cloud storage via db_preload.exists()
     else {
-        db_preload = file("${params.databases}/hosts/${params.species}/${params.species}.fa.gz")
+        db_preload = file("${params.cloudDatabase}/hosts/${params.species}/${params.species}.fa.gz")
       }
     if (db_preload.exists()) { db = db_preload }
     else  { get_host(); db = get_host.out } 
@@ -168,7 +147,7 @@ workflow download_diamond {
     main:
         if (!params.cloudProcess) { diamond_download_db() ; database_diamond = diamond_download_db.out}
         else { 
-            dia_db_preload = file("${params.databases}/diamond/database_uniprot.dmnd")
+            dia_db_preload = file("${params.cloudDatabase}/diamond/database_uniprot.dmnd")
             if (dia_db_preload.exists()) { database_diamond = dia_db_preload }    
             else  { diamond_download_db() ; database_diamond = diamond_download_db.out }
         }
@@ -181,124 +160,110 @@ workflow download_diamond {
 **************************/
 
 /**********************************************************************/
-/* Nanopore Preprocessing Workflow 
+/* Hybrid Assembly Workflow 
 /**********************************************************************/
-workflow nanopore_preprocess_wf {
+workflow hybrid_assembly_wf {
   take:  nano_input_ch
-         clean_ont_ch
+         illumina_input_ch
+         index_ont
+         index_fna
+         index_ill
 
   main:
       // trimming and QC of reads
         nanoplot(nano_input_ch)
         removeSmallReads(nano_input_ch)
-        nano_output_ch = removeSmallReads.out
+        nano_input_ch = removeSmallReads.out
 
-      // decontaminate reads if a host genome is provided
-      if (clean_ont_ch) {
-        clean_ont(nano_output_ch, clean_ont_ch)
-        nano_output_ch = clean_ont.out[0]
+        fastp(illumina_input_ch)
+        illumina_input_ch = fastp.out[0]
+
+      // decontaminate reads if a host genome is provided 
+      if (index_ont) {
+        clean_ont(nano_input_ch, index_ont)
+        nano_input_ch = clean_ont.out[0]
+      }
+      if (index_ill && params.bbduk) {
+        bbduk(illumina_input_ch, index_ill)
+        illumina_input_ch = bbduk.out[0]
+      } else {
+        if (index_ill) {
+          clean_ill(illumina_input_ch, index_ill)
+          illumina_input_ch = clean_ill.out[0]
+        }
+      }
+
+      assemblerUnpolished = false
+      if (params.assemblerHybrid == 'spades') {
+        spades(nano_input_ch.join(illumina_input_ch))
+        assemblerUnpolished = spades.out[0]
+        graphOutput = spades.out[1]
+        pilon(assemblerUnpolished, illumina_input_ch)
+        assemblerOutput = pilon.out
+      }
+      if (params.assemblerHybrid == 'flye') {
+        //estimate_gsize(nano_input_ch)
+        //flye(nano_input_ch.join(estimate_gsize.out))
+        flye(nano_input_ch)
+        assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+        medaka(racon(minimap2_to_polish(flye.out[0])))
+        pilon(medaka.out, illumina_input_ch)
+        assemblerOutput = pilon.out
+      }
+
+      if (assemblerUnpolished) { assemblerOutput = assemblerOutput.concat(assemblerUnpolished) }
+
+      if (index_fna) {
+        clean_assembly(assemblerOutput, index_fna)
+        assemblerOutput = clean_assembly.out[0]
       }
 
   emit:   
-      nano_output_ch
+        assemblerOutput
 }
 
-/**********************************************************************/
-/* Illumina Preprocessing Workflow 
-/**********************************************************************/
-workflow illumina_preprocess_wf {
-  take:  illumina_input_ch
-         clean_ill_ch
-
-  main:
-      // trimming and QC of reads
-        fastp(illumina_input_ch)
-        illumina_output_ch = fastp.out[0]
-
-        bbduk(illumina_output_ch, clean_ill_ch)
-        illumina_output_ch = bbduk.out[0]
-
-  emit:   
-        illumina_output_ch
-}
 
 /**********************************************************************/
 /* Nanopore-only Assembly Workflow 
 /**********************************************************************/
 workflow nanopore_assembly_wf {
   take:  nano_input_ch
+         index_ont
+         index_fna
 
   main:
+      // trimming and QC of reads
+        nanoplot(nano_input_ch)
+        removeSmallReads(nano_input_ch)
+        nano_input_ch = removeSmallReads.out
+
+      // decontaminate reads if a host genome is provided
+      if (index_ont) {
+        clean_ont(nano_input_ch, index_ont)
+        nano_input_ch = clean_ont.out[0]
+      }
+
+      // size estimation for flye 
         if (params.assemblerLong == 'flye') { 
-          // size estimation for flye, deprecated since v2.8 and not used anymore in the flye module
-          estimate_gsize(nano_input_ch) 
-          // assembly raw
+          //estimate_gsize(nano_input_ch) 
+          //flye(nano_input_ch.join(estimate_gsize.out))
           flye(nano_input_ch)
-          // polish
-          medaka(racon(minimap2_to_polish(flye.out.assembly)))
-          // collect assembly outputs
-          assemblyUnpolished = flye.out.assembly.map {name, reads, assembly -> [name, assembly]}
-          assemblyRacon = racon.out.map {name, reads, assembly -> [name, assembly]}
-          assemblyMedaka = medaka.out
+          assemblerUnpolished = flye.out[0].map {name, reads, assembly -> [name, assembly]}
+          medaka(racon(minimap2_to_polish(flye.out[0])))
+          assemblerOutput = medaka.out 
         }
 
-      //assemblies = assemblyUnpolished.concat(assemblyRacon).concat(assemblyMedaka)
+      assemblerOutput = assemblerOutput.concat(assemblerUnpolished)
 
-  emit:   
-        assemblyUnpolished
-        assemblyRacon
-        assemblyMedaka
-        flye.out.log
-        estimate_gsize.out
-}
-
-/**********************************************************************/
-/* Clean Assembly Workflow 
-/**********************************************************************/
-workflow clean_assembly_wf {
-  take:  assembly_input_ch
-         clean_assembly_ch
-
-  main:
-        clean_assembly(assembly_input_ch, clean_assembly_ch)
-
-  emit:   
-        clean_assembly.out[0]
-}
-
-/**********************************************************************/
-/* SR polishing Workflow 
-/**********************************************************************/
-workflow illumina_polishing_wf {
-  take:  assembly_input_ch
-         illumina_input_ch
-  main:
-        round1_pilon(assembly_input_ch.join(round1_samtools(round1_bwa(illumina_input_ch.join(assembly_input_ch)))), 'round1')
-        assembly_round1 = round1_pilon.out 
-        round2_pilon(assembly_round1.join(round2_samtools(round2_bwa(illumina_input_ch.join(assembly_round1)))), 'round2')
-        assembler_output = round2_pilon.out 
-  emit:   
-        assembler_output
-}
-
-
-/**********************************************************************/
-/* SPAdes Hybrid Assembly Workflow 
-/**********************************************************************/
-workflow hybrid_assembly_wf {
-  take:  nano_input_ch
-         illumina_input_ch
-
-  main:
-
-      if (params.assemblerHybrid == 'spades') {
-        spades(nano_input_ch.join(illumina_input_ch))
-        assemblyUnpolished= spades.out[0]
-        graphOutput = spades.out[1]
+      if (index_fna) {
+        clean_assembly(assemblerOutput, index_fna)
+        assemblerOutput = clean_assembly.out[0]
       }
 
   emit:   
-        assemblyUnpolished
+        assemblerOutput
+        flye.out[1] // the flye.log
+        //estimate_gsize.out
 }
 
 
@@ -322,13 +287,13 @@ workflow index_wf {
 
   main:
     minimap2_index_ont(host)
-    minimap2_index_assembly(host)
-    //minimap2_index_ill(host)
+    minimap2_index_fna(host)
+    minimap2_index_ill(host)
 
   emit:
     minimap2_index_ont.out
-    minimap2_index_assembly.out
-    //minimap2_index_ill.out
+    minimap2_index_fna.out
+    minimap2_index_ill.out
 }
 
 
@@ -340,115 +305,65 @@ workflow index_wf {
 
 workflow {
 
-      if (params.fasta) {
-        assemblies = fasta_input_ch
+      bbduk = false
+      index_ont = false
+      index_fna = false
+      index_ill = false
+
+      // 1) check for user defined minimap2 indices 
+      if (params.index_ont) { index_ont = file(params.index_ont, checkIfExists: true) }
+      if (params.index_fna) { index_fna = file(params.index_fna, checkIfExists: true) }
+      if (params.index_ill) { index_ill = file(params.index_ill, checkIfExists: true) }
+      if (params.bbduk) { index_ill = file(params.bbduk, checkIfExists: true) }
+
+      // 2) build indices if just a fasta is provided
+      // WIP
+      if (params.host) {
+        index_wf(host_input_ch)
+        index_ont = index_wf.out[0]
+        index_fna = index_wf.out[1]
+        index_ill = index_wf.out[2]
       }
-      else {
-        clean_ont_ch = false
-        clean_ill_ch = false // uses bbduk per default
-        clean_assembly_ch = false
-        if (params.illumina && params.nano) {
-          clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_DCS.mmi", checkIfExists: true)
-        } else {
-          if (params.illumina) {
-            clean_assembly_ch = file("${baseDir}/clean/assembly/NC_001422_FNA.mmi", checkIfExists: true)          
-          }
-          if (params.nano) {
-            clean_assembly_ch = file("${baseDir}/clean/assembly/DCS_FNA.mmi", checkIfExists: true)          
-          }
-        }
 
-        // 1) check for user defined minimap2 indices 
-        if (params.clean_ont) { clean_ont_ch = file(params.clean_ont, checkIfExists: true) }
-        if (params.clean_ill) { clean_ill_ch = file(params.clean_ill, checkIfExists: true) }
-        if (params.clean_assembly) { 
-
-          clean_assembly_ch = file(params.clean_assembly, checkIfExists: true) 
-        }
- 
-        // 2) build indices if just a fasta is provided
-        // WIP
-        if (params.host) {
-          index_wf(host_input_ch)
-          clean_ont_ch = index_wf.out[0]
-          clean_assembly_ch = index_wf.out[1]
-        }
-
-        // 3) download genome and build indices
-        // WIP
-        if (params.species) { 
-          download_host_genome()
-          genome = download_host_genome.out
-          host_input_ch = Channel.of( [params.species, genome] )
-          index_wf(host_input_ch)
-          clean_ont_ch = index_wf.out[0]
-          clean_assembly_ch = index_wf.out[1]
-        }
+      // 3) download genome and build indices
+      // WIP
+      if (params.species) { 
+        download_host_genome()
+        genome = download_host_genome.out
+        host_input_ch = Channel.of( [params.species, genome] )
+        index_wf(host_input_ch)
+        index_ont = index_wf.out[0]
+        index_fna = index_wf.out[1]
+        index_ill = index_wf.out[2]
+      }
       
-        // ONT preprocess
-        if (params.nano) {
-          nanopore_preprocess_wf(nano_input_ch, clean_ont_ch)
+      // assembly workflows
+      // ONT
+      if (params.nano && !params.illumina || params.sra ) { 
+        nanopore_assembly_wf(nano_input_ch, index_ont, index_fna)
+        assembly = nanopore_assembly_wf.out[0]
+        if (params.study || params.sample || params.run) {
+          ena_manifest(assembly_polished, nanopore_assembly_wf.out[1])
+          ena_project_xml(assembly_polished, nanopore_assembly_wf.out[1])
         }
+      }
 
-        // ILL preprocess
-        if (params.illumina ) { 
-          illumina_preprocess_wf(illumina_input_ch, clean_ill_ch)
-        }
-
-        // Flye-based assembly followed by optional short-read polishing
-        if (!params.illumina || params.assemblerHybrid != 'spades') { 
-          // assembly w/ long-read start, e.g. flye
-          nanopore_assembly_wf(nanopore_preprocess_wf.out)
-          assemblyRaw = nanopore_assembly_wf.out[0]
-          assemblyRacon = nanopore_assembly_wf.out[1]
-          assemblyReady = nanopore_assembly_wf.out[2]
-
-          // combine for analysis step 
-          assemblies = assemblyRaw.concat(assemblyRacon).concat(assemblyReady)
-
-          // polish with short reads
-          if (params.illumina) {
-            illumina_polishing_wf(assemblyReady, illumina_preprocess_wf.out)
-            assemblyReady = illumina_polishing_wf.out
-            assemblies = assemblies.concat(assemblyReady)
-          }
-        }
-
-        // Hybrid SPAdes
-        if (params.nano && params.illumina && params.assemblerHybrid == 'spades') { 
-          // assembly w/ spades
-          hybrid_assembly_wf(nanopore_preprocess_wf.out, illumina_preprocess_wf.out)
-          assemblyReady = hybrid_assembly_wf.out
-
-          // collect for analysis step 
-          assemblies = assemblyReady
-        }
-
-        // clean assembly
-        if (clean_assembly_ch) { 
-          clean_assembly_wf(assemblyReady, clean_assembly_ch)
-          assemblyReady = clean_assembly_wf.out
-          assemblies = assemblies.concat(assemblyReady)
+      // HYBRID
+      if (params.nano && params.illumina ) { 
+        hybrid_assembly_wf(nano_input_ch, illumina_input_ch, index_ont, index_fna, index_ill)
+        assembly = hybrid_assembly_wf.out
+        if (params.study || params.sample || params.run) {
+          ena_manifest_hybrid(assembly)
+          ena_project_xml_hybrid(assembly)
         }
       }
 
       // analysis workflow
       if (params.dia_db) { database_diamond = file(params.dia_db) } 
       else { download_diamond(); database_diamond = download_diamond.out }
-      analysis_wf(assemblies, database_diamond)
+      analysis_wf(assembly, database_diamond)
 
-      // ENA submission
-      if (!params.illumina || params.assemblerHybrid != 'spades') { 
-        if (params.study || params.sample || params.run) {
-          ena_manifest(assemblyReady, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
-          ena_project_xml(assemblyReady, nanopore_assembly_wf.out[3], nanopore_assembly_wf.out[4])
-        }
-      } else {
-        if (params.study || params.sample || params.run) {
-          ena_manifest_hybrid(assemblyReady)
-          ena_project_xml_hybrid(assemblyReady)
-        }
-      }
+
 }
 
 
@@ -474,34 +389,29 @@ def helpMSG() {
     ${c_yellow}Input:${c_reset}
     ${c_green} --nano ${c_reset}            '*.fasta' or '*.fastq.gz'   -> one sample per file
     ${c_green} --illumina ${c_reset}        '*.R{1,2}.fastq.gz'         -> file pairs
-    ${c_green} --fasta ${c_reset}           '*.fasta' or '*.fasta.gz'   -> one sample per file
     ${c_green} --sra ${c_reset}             ERR3407986                  -> Run acc, currently only for ONT data supported
     ${c_dim}  ..change above input to csv:${c_reset} ${c_green}--list ${c_reset} 
 
     ${c_yellow}Options:${c_reset}
-    --cores             max cores per process for local use [default: $params.cores]
-    --max_cores         max cores per machine for local use [default: $params.max_cores]
+    --cores             max cores for local use [default: $params.cores]
     --memory            max memory for local use [default: $params.cores]
-    --gsize             [deprecated], will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
+    --gsize            	will be estimated if not provided, genome size for flye assembly [default: $params.gsize]
     --length            cutoff for ONT read length filtering [default: $params.length]
     --assemblerHybrid   hybrid assembly tool used [spades, flye default: $params.assemblerHybrid]
     --assemblerLong     nanopore assembly tool used [flye, default: $params.assemblerLong]
     --output            name of the result folder [default: $params.output]
 
     ${c_yellow}Custom databases:${c_reset}
-     --dia_db             input for diamond database e.g.: 'databases/database_uniprot.dmnd
+     --dia_db      input for diamond database e.g.: 'databases/database_uniprot.dmnd
 
     ${c_yellow}Decontamination:${c_reset}
-    You have three options to provide references for decontamination. 
-    Per default phiX/DCS controls will be used to clean your Illumina/ONT data.
-    Deactivate cleaning via '--clean_ont false', etc..
+    You have three options to provide references for decontamination:
 
     1) Provide prepared minimap2 indices...
-    --clean_ont         minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.clean_ont]
-    --clean_ill         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.clean_ill]
-    --clean_assembly    minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.clean_assembly]
-                        during runtime either DCS (for ONT), phiX (for Illumina), or DCS+phiX (hybrid) will be automatically 
-                        selected based on your input
+    --bbduk         FASTA file for BBDUK Illumina read decontamination; clean ILLUMINA [default: $params.bbduk]
+    --index_ont     minimap2 index prepared with the ``-x map-ont`` flag; clean ONT [default: $params.index_ont]
+    --index_fna     minimap2 index prepared with the ``-x asm5`` flag; clean FASTA [default: $params.index_fna]
+    --index_ill     minimap2 index prepared with the ``-x sr`` flag; clean ILLUMINA [default: $params.index_ill]
 
     2) Or use your own FASTA...
     --host          use your own FASTA sequence for decontamination, e.g., host.fasta.gz. minimap2 indices will be calculated for you. [default: $params.host]
@@ -514,8 +424,8 @@ def helpMSG() {
                                         - hsa [Ensembl: Homo_sapiens.GRCh38.dna.primary_assembly]
                                         - mmu [Ensembl: Mus_musculus.GRCm38.dna.primary_assembly]
                                         - eco [Ensembl: Escherichia_coli_k_12.ASM80076v1.dna.toplevel]${c_reset}
-    --phix       do NOT use phix in decontamination [Illumina: enterobacteria_phage_phix174_sensu_lato_uid14015, NC_001422]
-    --dcs        do NOT use DCS in decontamination [ONT DNA-Seq: 3.6 kb standard amplicon mapping the 3' end of the Lambda genome]
+    --phix       do not use phix in decontamination [Illumina: enterobacteria_phage_phix174_sensu_lato_uid14015, NC_001422]
+    --dcs        do not use DCS in decontamination [ONT DNA-Seq: 3.6 kb standard amplicon mapping the 3' end of the Lambda genome]
 
     ${c_yellow}ENA parameters:${c_reset}
     --study             ENA study ID [default: $params.study]
@@ -530,36 +440,20 @@ def helpMSG() {
     -with-dag chart.html     generates a flowchart for the process tree
     -with-timeline time.html timeline (may cause errors)
 
-    ${c_yellow}Computing:${c_reset}
+    ${c_yellow}LSF computing:${c_reset}
     For execution of the workflow on a HPC with LSF adjust the following parameters:
-    --databases             defines the path where databases are stored [default: $params.dbs]
-    --workdir               defines the path where nextflow writes tmp files [default: $params.workdir]
-    --condaCacheDir         defines the path where environments (conda) are cached [default: $params.condaCacheDir]
-    --singularityCacheDir   defines the path where images (singularity) are cached [default: $params.singularityCacheDir] 
+    --databases         defines the path where databases are stored [default: $params.cloudDatabase]
+    -w                  defines the path where nextflow writes tmp files [default: $workflow.workDir]
+    --cachedir          defines the path where images (singularity) are cached [default: $params.cachedir] 
 
-
-    ${c_yellow}Profile:${c_reset}
-    You can merge different profiles for different setups, e.g.
-
-        -profile local,docker
-        -profile lsf,singularity
-        -profile slurm,singularity
-
-    -profile                 standard (local,docker) [default]
-
-                             local
-                             lsf
-                             slurm
-
+    Profile:
+    -profile                 local [default]
+                             conda
                              docker
                              singularity
-                             conda
-
-                             ebi (lsf,singularity; preconfigured for the EBI cluster)
-                             yoda (lsf,singularity; preconfigured for the EBI YODA cluster)
-                             ara (slurm,conda; preconfigured for the ARA cluster)
-                             nih (slurm,singularity; preconfigured for the NIH cluster)
-                             gcloud (use this as template for your own GCP setup)
+                             lsf (HPC w/ LSF, singularity/docker)
+                             ebi (EBI cluster specific, singularity and docker)
+                             gcloud (googlegenomics and docker)
                              ${c_reset}
 
     """.stripIndent()

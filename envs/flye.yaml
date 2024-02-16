@@ -3,4 +3,4 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - flye=2.8
+  - flye=2.9.3

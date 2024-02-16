@@ -5,7 +5,7 @@ process ena_project_xml {
     input:
     tuple val(name), file(assembly)
     tuple val(name), file(flye_log)
-    tuple val(name), file(genome_size)
+    //tuple val(name), file(genome_size)
     
     output:
     file("*.xml")
@@ -14,7 +14,8 @@ process ena_project_xml {
     date = Date().format( 'yyyy-MM-dd' )
     """
     MD5=\$(md5sum ${assembly} | awk '{print \$1}')
-    SIZE=\$(cat !{genome_size})
+    //SIZE=\$(cat !{genome_size})
+    SIZE=\$(grep -v ">" ${assembly} | tr -d '\\n' | wc -m)
     COVERAGE=\$(grep 'Mean coverage' !{flye_log} | awk '{print \$3}')
 
     FLYE_VERSION=2.5
