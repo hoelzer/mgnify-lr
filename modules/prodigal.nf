@@ -10,10 +10,9 @@ process prodigal {
     script:
       """
       #possible input channels
-      #ERR3662306_1_small_raw.fasta
-      #ERR3662306_1_small_racon.fasta
-      #ERR3662306_1_small_medaka.fasta
-      #ERR3662306_1_small_pilon.fasta
+      #ERR3662306_1_small_raw_assembly.fasta
+      #ERR3662306_1_small_polished.fasta
+      #ERR3662306_1_small_pilon_polished.fasta
       #ERR3662306_1_small_raw_assembly_clean.fasta
       #ERR3662306_1_small_polished_clean.fasta
       #ERR3662306_1_small_pilon_polished_clean.fasta

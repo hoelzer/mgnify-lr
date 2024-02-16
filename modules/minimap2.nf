@@ -1,10 +1,10 @@
 process minimap2_index_ont {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "${params.databases}/minimap2/" 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -19,10 +19,10 @@ process minimap2_index_ont {
 process minimap2_index_ill {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "${params.databases}/minimap2/" 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -34,13 +34,13 @@ process minimap2_index_ill {
       """
 }
 
-process minimap2_index_assembly {
+process minimap2_index_fna {
   label 'minimap2'
   if (params.cloudProcess) { 
-      publishDir "${params.databases}/minimap2/", mode: 'copy', pattern: "*.mmi" 
+      publishDir "${params.cloudDatabase}/minimap2/", mode: 'copy', pattern: "*.mmi" 
   }
   else { 
-      storeDir "${params.databases}/minimap2/" 
+      storeDir "nextflow-autodownload-databases/minimap2/" 
   }  
     input:
   	  tuple val(name), file(fasta) 
@@ -51,6 +51,7 @@ process minimap2_index_assembly {
       minimap2 -x asm5 -t ${task.cpus} -d ${name}.fna.mmi ${fasta}
       """
 }
+
 
 process minimap2_to_polish {
   label 'minimap2'
@@ -64,7 +65,7 @@ process minimap2_to_polish {
       """
 }
 
-process minimap2_clean_ont {
+process minimap2_to_decontaminate_fastq {
   label 'minimap2'
   publishDir "${params.output}/${name}/decontamination/", mode: 'copy', pattern: "${name}.*.fastq.gz"  
 
@@ -78,6 +79,7 @@ process minimap2_clean_ont {
 
   script:
     """
+
     # remove spaces in read IDs to keep them in the later cleaned output
     if [[ ${fastq} =~ \\.gz\$ ]]; then
       zcat ${fastq} | sed 's/ /DECONTAMINATE/g' > ${name}.id.fastq
@@ -96,7 +98,8 @@ process minimap2_clean_ont {
     """
 }
 
-process minimap2_clean_assembly {
+
+process minimap2_to_decontaminate_fasta {
   label 'minimap2'
   publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fasta"  
 
@@ -132,7 +135,8 @@ process minimap2_clean_assembly {
     """
 }
 
-process minimap2_clean_ill {
+
+process minimap2_to_decontaminate_ill {
   label 'minimap2'
   publishDir "${params.output}/${name}/assembly/", mode: 'copy', pattern: "*.fastq.gz"  
 
